@@ -1,0 +1,310 @@
+{# templates/masa/panel_odeme_al.html #}
+{% set _order = order %}
+{% set _items = items or [] %}
+{% set _total_price = (total_price or 0.0) %}
+{% set _total_paid  = (total_paid  or 0.0) %}
+{% set _remain = (_total_price - _total_paid) if (_total_price > _total_paid) else 0.0 %}
+
+<style>
+  .nx-grid-3{
+    display:grid; gap:16px;
+    grid-template-columns:1fr;
+  }
+  @media (min-width: 900px){
+    .nx-grid-3{ grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  .nx-card{
+    background: var(--surface,#fff);
+    border:1px solid var(--border,#e5e7eb);
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.06);
+    overflow:hidden;
+  }
+  .nx-inner-header{
+    padding:12px 14px;
+    background: var(--surface-2,#fafafa);
+    border-bottom:1px solid var(--border,#e5e7eb);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-weight:700;
+  }
+  .nx-inner{ padding:14px; }
+
+  .nx-kpis{
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .nx-kpi{
+    background:var(--surface,#fff);
+    border:1px dashed var(--border,#e5e7eb);
+    padding:10px 12px; border-radius:10px; min-width:150px;
+  }
+  .nx-kpi .l{ font-size:.8rem; color:#6b7280; }
+  .nx-kpi .v{ font-weight:800; font-size:1.05rem; }
+
+  .nx-field{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .nx-label{ font-size:.85rem; color:#6b7280; }
+  .nx-input, .nx-select{
+    width:100%; padding:8px 10px;
+    border:1px solid var(--border,#e5e7eb); border-radius:10px;
+    background:var(--surface,#fff); color:var(--text,#111827);
+  }
+
+  .nx-btn{ appearance:none; border:none; border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer; width:100%; }
+  .nx-btn-success{ background:#16a34a; color:#fff; }
+  .nx-btn-success:hover{ background:#15803d; }
+  .nx-btn-primary{ background: var(--brand-primary, #0EA5A3); color:#fff; }
+  .nx-btn-primary:hover{ background:#0a7f7e; }
+  .nx-btn-warn{ background:#f59e0b; color:#111827; }
+  .nx-btn-warn:hover{ background:#d97706; color:#111827; }
+
+  .nx-list{
+    border:1px solid var(--border,#e5e7eb); border-radius:10px; overflow:hidden;
+    max-height:180px; overflow:auto; background:#fff;
+  }
+  .nx-li{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #f1f5f9; }
+  .nx-li:last-child{ border-bottom:none; }
+  .nx-li label{ display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px; }
+  .nx-li small{ color:#6b7280; }
+</style>
+
+<div class="nx-card" style="margin:12px;">
+  <div class="nx-inner-header">
+    <div>💳 Ödeme Paneli · <strong>{{ masa.name }}</strong></div>
+{% if panel == "odeme" and happy_hour_active %}
+<form method="POST"
+      action="{{ url_for('masa.odeme_al_panel', masa_id=masa.id) }}"
+      class="mb-2">
+
+    <input type="hidden" name="happy_hour_submit" value="1">
+
+    <button type="submit"
+            class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-between py-3"
+            style="border-radius:12px;">
+
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history"></i>
+            <div class="text-start">
+                <div class="fw-semibold">Happy Hour</div>
+                <small class="text-muted">%25 indirim uygulanır</small>
+            </div>
+        </div>
+    </button>
+
+</form>
+{% endif %}
+    <div class="nx-kpis">
+      <div class="nx-kpi"><div class="l">Toplam</div><div class="v">₺ {{ '%.2f'|format(_total_price) }}</div></div>
+      <div class="nx-kpi"><div class="l">Ödenen</div><div class="v">₺ {{ '%.2f'|format(_total_paid) }}</div></div>
+      <div class="nx-kpi"><div class="l">Kalan</div><div class="v">₺ {{ '%.2f'|format(_remain) }}</div></div>
+    </div>
+  </div>
+
+  <div class="nx-inner">
+    {% if not _order %}
+      <div class="text-muted">Aktif sipariş bulunamadı. Önce sipariş oluşturun.</div>
+    {% else %}
+
+      <div class="nx-grid-3">
+
+        {# 🟢 Tam tutarı öde/indirim #}
+        <form method="POST" action="{{ url_for('masa.odeme_al_panel', masa_id=masa.id) }}" class="nx-card">
+          <div class="nx-inner-header">🟢 Tüm Borcu Kapat</div>
+          <div class="nx-inner">
+            <div class="nx-field">
+              <label class="nx-label">Yöntem</label>
+              <select name="payment_method" class="nx-select pm-select" required>
+                <option value="">Seçiniz</option>
+                <option value="nakit">Nakit</option>
+                <option value="kart">Kart</option>
+                <option value="QR">QR</option>
+                <option value="indirim">İndirim</option>
+              </select>
+            </div>
+
+            <div class="nx-field disc-reason" style="display:none">
+              <label class="nx-label">İndirim Nedeni</label>
+              <input type="text" name="discount_reason" class="nx-input" placeholder="örn. ikram / memnuniyet / kampanya">
+              <small class="text-muted">Not: neden bilgisi raporlar için kaydedilir (opsiyonel).</small>
+            </div>
+
+            <button type="submit" name="full_submit" value="1" class="nx-btn nx-btn-success">
+              {% if _remain > 0 %}Tamamını Kapat (₺ {{ '%.2f'|format(_remain) }}){% else %}Kapat{% endif %}
+            </button>
+          </div>
+        </form>
+
+        {# 🟡 Belirli tutar öde/indirim #}
+        <form method="POST" action="{{ url_for('masa.odeme_al_panel', masa_id=masa.id) }}" class="nx-card">
+          <div class="nx-inner-header">🟡 Belirli Tutar</div>
+          <div class="nx-inner">
+            <div class="nx-field">
+              <label class="nx-label">Tutar</label>
+              <input type="number" step="0.01" min="0.01" name="amount" class="nx-input" placeholder="₺" required>
+            </div>
+            <div class="nx-field">
+              <label class="nx-label">Yöntem</label>
+              <select name="payment_method" class="nx-select pm-select" required>
+                <option value="">Seçiniz</option>
+                <option value="nakit">Nakit</option>
+                <option value="kart">Kart</option>
+                <option value="QR">QR</option>
+                <option value="indirim">İndirim</option>
+              </select>
+            </div>
+
+            <div class="nx-field disc-reason" style="display:none">
+              <label class="nx-label">İndirim Nedeni</label>
+              <input type="text" name="discount_reason" class="nx-input" placeholder="örn. ikram / memnuniyet / kampanya">
+            </div>
+
+            <button type="submit" name="amount_submit" value="1" class="nx-btn nx-btn-primary">Kaydet</button>
+          </div>
+        </form>
+
+        {# 🟠 Seçili ürünlerle öde/indirim #}
+        <form name="nx-partial-form" method="POST" action="{{ url_for('masa.odeme_al_panel', masa_id=masa.id) }}" class="nx-card">
+          <div class="nx-inner-header">🟠 Ürün Seçerek Kapat</div>
+          <div class="nx-inner">
+            <div class="nx-field">
+              <div class="nx-label">Ödenmemiş Kalemler</div>
+              <div class="nx-list">
+                {% set _has_unpaid = false %}
+                {% for item in _items if item.status not in ['ödendi','iptal edildi'] %}
+                  {% set _has_unpaid = true %}
+                  {# satır fiyatını dinamik (saatlik/override) göster #}
+                  {% set line_total = (item_display_totals[item.id] if item_display_totals is defined else (item.product.price or 0.0)) %}
+                  <div class="nx-li">
+                    <input
+                      class="form-check-input nx-item-check"
+                      type="checkbox"
+                      name="selected_items"
+                      value="{{ item.id }}"
+                      id="urun_{{ item.id }}"
+                      data-price="{{ '%.2f'|format(line_total) }}">
+                    <label for="urun_{{ item.id }}">
+                      <span>{{ item.product.name }}</span>
+                      <small>₺ {{ '%.2f'|format(line_total) }}</small>
+                    </label>
+                  </div>
+                {% endfor %}
+                {% if not _has_unpaid %}
+                  <div class="nx-li"><span class="text-muted">Tüm ürünler ödendi veya iptal edildi.</span></div>
+                {% endif %}
+              </div>
+            </div>
+
+            {# 👉 Seçim Özeti — sadece bilgi amaçlı #}
+            <div class="nx-field" id="nx-selected-summary" style="display:none">
+              <div class="nx-kpis">
+                <div class="nx-kpi">
+                  <div class="l">Seçilen Ürün</div>
+                  <div class="v"><span id="nx-selected-count">0</span> adet</div>
+                </div>
+                <div class="nx-kpi">
+                  <div class="l">Seçilen Toplamı</div>
+                  <div class="v">₺ <span id="nx-selected-total">0,00</span></div>
+                </div>
+              </div>
+              <small class="text-muted">Bu alan sadece bilgilendirme içindir, ödemeyi/indirimi etkilemez.</small>
+            </div>
+
+            <div class="nx-field">
+              <label class="nx-label">Yöntem</label>
+              <select name="payment_method" class="nx-select pm-select" required>
+                <option value="">Seçiniz</option>
+                <option value="nakit">Nakit</option>
+                <option value="kart">Kart</option>
+                <option value="QR">QR</option>
+                <option value="indirim">İndirim</option>
+              </select>
+            </div>
+
+            <div class="nx-field disc-reason" style="display:none">
+              <label class="nx-label">İndirim Nedeni</label>
+              <input type="text" name="discount_reason" class="nx-input" placeholder="örn. ikram / memnuniyet / kampanya">
+            </div>
+
+            <button type="submit" name="partial_submit" value="1" class="nx-btn nx-btn-warn">Seçili Ürünleri Kapat</button>
+          </div>
+        </form>
+
+      </div>
+
+      {# Alınan ödemeler #}
+      <div class="nx-card" style="margin-top:16px;">
+        <div class="nx-inner-header">💳 Alınan Ödemeler</div>
+        <div class="nx-inner">
+          {% set pays = _order.partial_payments or [] %}
+          {% if pays %}
+            <div class="nx-list" style="max-height:220px;">
+              {% for payment in pays %}
+                <div class="nx-li" style="justify-content:space-between;">
+                  <span>
+                    {{ payment.paid_at.strftime('%d.%m %H:%M') }} —
+                    {{ payment.payment_method|upper }}
+                    {% if payment.payment_method and payment.payment_method|lower == 'indirim' %}
+                      <small class="tag" style="margin-left:6px;">İNDİRİM</small>
+                    {% endif %}
+                  </span>
+                  <strong>₺ {{ '%.2f'|format(payment.amount) }}</strong>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-muted">Henüz ödeme alınmadı.</div>
+          {% endif %}
+        </div>
+      </div>
+
+    {% endif %}
+  </div>
+</div>
+
+{# 🔻 Küçük JS: seçim özeti + indirim nedeni alanını göster/gizle #}
+<script>
+(function () {
+  // --- Seçim özeti ---
+  const formPartial = document.querySelector('form[name="nx-partial-form"]');
+  if (formPartial) {
+    const summaryBox = document.getElementById('nx-selected-summary');
+    const countEl = document.getElementById('nx-selected-count');
+    const totalEl = document.getElementById('nx-selected-total');
+
+    function formatTRY(x) {
+      return (x || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function updateSummary() {
+      const checks = formPartial.querySelectorAll('input[name="selected_items"]:checked');
+      let sum = 0;
+      checks.forEach(ch => { sum += parseFloat(ch.dataset.price || '0'); });
+      const count = checks.length;
+
+      countEl.textContent = count;
+      totalEl.textContent = formatTRY(sum);
+      summaryBox.style.display = count > 0 ? '' : 'none';
+    }
+    formPartial.addEventListener('change', (e) => {
+      if (e.target && e.target.name === 'selected_items') updateSummary();
+    });
+    updateSummary();
+  }
+
+  // --- İndirim nedeni alanını sadece "indirim" seçilince göster ---
+  function wireDiscountToggles(root) {
+    const pmSelects = root.querySelectorAll('.pm-select');
+    pmSelects.forEach(sel => {
+      const card = sel.closest('form');
+      const discBox = card ? card.querySelector('.disc-reason') : null;
+      const toggle = () => {
+        if (!discBox) return;
+        const v = (sel.value || '').toLowerCase();
+        discBox.style.display = (v === 'indirim') ? '' : 'none';
+      };
+      sel.addEventListener('change', toggle);
+      toggle();
+    });
+  }
+  wireDiscountToggles(document);
+
+})();
+</script>

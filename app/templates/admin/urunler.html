@@ -1,0 +1,164 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Ürünler · Yönetim Paneli{% endblock %}
+
+{% block styles %}
+<style>
+  .nx-topbar + .container.nx-offset { padding-top: 8px; }
+  .container.nx-offset>:first-child{ margin-top:0!important }
+
+  .nx-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin:8px 12px 6px 12px;
+  }
+  .nx-head h2{margin:0;font-weight:800;display:flex;align-items:center;gap:8px}
+  .nx-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  .nx-btn{
+    height:36px;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;
+    border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  }
+  .nx-btn.primary{background:var(--brand-primary,#0EA5A3);color:#fff}
+  .nx-btn.primary:hover{filter:brightness(.95)}
+  .nx-btn.outline{background:transparent;border:1px solid var(--border,#e5e7eb);color:var(--text,#111827)}
+  .nx-btn.outline:hover{background:#f3f4f6}
+  .nx-btn.warn{background:#f59e0b;color:#111}
+  .nx-btn.warn:hover{filter:brightness(.95)}
+  .nx-btn.danger{background:#dc2626;color:#fff}
+  .nx-btn.danger:hover{background:#b91c1c}
+
+  .nx-card{
+    background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);
+    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden;margin:0 12px 12px 12px;
+  }
+  .nx-card-hdr{
+    padding:12px 14px;background:var(--surface-2,#fafafa);border-bottom:1px solid var(--border,#e5e7eb);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700;
+  }
+  .nx-card-body{padding:14px}
+
+  .nx-filter{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .nx-input, .nx-select{
+    height:36px;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:0 12px;background:#fff;outline:none;
+  }
+  .nx-input:focus, .nx-select:focus{border-color:var(--brand-primary,#0EA5A3);box-shadow:0 0 0 3px rgba(14,165,163,.18)}
+
+  .grid{display:grid;gap:12px}
+  @media (min-width: 720px){ .grid{grid-template-columns:repeat(2,1fr)} }
+  @media (min-width: 1040px){ .grid{grid-template-columns:repeat(3,1fr)} }
+
+  .p-card{
+    border:1px solid #eef1f4;border-radius:12px;background:#fff;padding:12px;
+    display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 18px rgba(0,0,0,.04);
+  }
+  .p-top{display:flex;justify-content:space-between;gap:10px}
+  .p-name{font-weight:800;color:var(--text,#111827)}
+  .p-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chip{font-size:.75rem;padding:.2rem .6rem;border-radius:999px;background:#eef2f7;border:1px solid #e2e8f0;color:#334155}
+  .price{font-weight:800}
+  .muted{color:#6b7280}
+
+  .p-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-head">
+  <h2>🧾 Ürünler</h2>
+  <div class="nx-actions">
+    <a href="{{ url_for('urun.urun_ekle') }}" class="nx-btn primary">➕ Yeni Ürün Ekle</a>
+  </div>
+</div>
+
+<div class="nx-card">
+  <div class="nx-card-hdr">
+    <div>Ürün Listesi</div>
+    <div class="nx-filter">
+      <input id="q" type="text" class="nx-input" placeholder="Ara: ürün adı…">
+      <select id="cat" class="nx-select">
+        <option value="">Kategori (tümü)</option>
+        {# mevcut ürünlerden kategorileri topla #}
+        {% set _cats = (urunler | map(attribute='category') | list) %}
+        {% for c in _cats | unique %}
+          {% if c %}
+            <option value="{{ c|lower }}">{{ c }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <select id="vis" class="nx-select">
+        <option value="">Görünürlük (tümü)</option>
+        {% if panels %}
+          {% for p in panels %}
+            <option value="{{ (p or '')|lower }}">{{ p }}</option>
+          {% endfor %}
+        {% endif %}
+      </select>
+    </div>
+  </div>
+
+  <div class="nx-card-body">
+    {% if urunler %}
+      <div class="grid" id="pGrid">
+        {% for u in urunler %}
+          <div class="p-card"
+               data-row
+               data-name="{{ (u.name or '')|lower }}"
+               data-cat="{{ (u.category or '')|lower }}"
+               data-vis="{{ (u.visible_for or '')|lower }}">
+            <div class="p-top">
+              <div class="p-name">{{ u.name }}</div>
+              <div class="price">{{ '%.2f'|format(u.price or 0) }} ₺</div>
+            </div>
+
+            <div class="p-meta">
+              <span class="chip">{{ u.category or 'Kategori yok' }}</span>
+              {% if u.sub_category %}<span class="chip">{{ u.sub_category }}</span>{% endif %}
+              <span class="chip">Stok: {{ u.stock or 0 }}</span>
+              <span class="chip">Görünürlük: {{ u.visible_for or 'gösterme' }}</span>
+            </div>
+
+            <div class="p-actions">
+              <a class="nx-btn outline" href="{{ url_for('urun.urun_duzenle', urun_id=u.id) }}">✏️ Güncelle</a>
+              <a class="nx-btn danger"
+                 href="{{ url_for('urun.urun_sil', id=u.id) }}"
+                 onclick="return confirm('‘{{ u.name }}’ ürününü silmek istediğinize emin misiniz?');">🗑 Sil</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">Kayıt bulunamadı.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}{{ super() }}
+<script>
+  (function(){
+    const q   = document.getElementById('q');
+    const cat = document.getElementById('cat');
+    const vis = document.getElementById('vis');
+    const rows= Array.from(document.querySelectorAll('[data-row]'));
+
+    function apply(){
+      const qs  = (q.value || '').trim().toLowerCase();
+      const cs  = (cat.value || '').toLowerCase();
+      const vs  = (vis.value || '').toLowerCase();
+
+      rows.forEach(r=>{
+        const n = r.getAttribute('data-name') || '';
+        const c = r.getAttribute('data-cat')  || '';
+        const v = r.getAttribute('data-vis')  || '';
+        const okQ = !qs || n.includes(qs);
+        const okC = !cs || c === cs;
+        const okV = !vs || v === vs;
+        r.style.display = (okQ && okC && okV) ? '' : 'none';
+      });
+    }
+
+    q?.addEventListener('input', apply);
+    cat?.addEventListener('change', apply);
+    vis?.addEventListener('change', apply);
+  })();
+</script>
+{% endblock %}

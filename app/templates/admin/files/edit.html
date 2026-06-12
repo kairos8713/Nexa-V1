@@ -1,0 +1,104 @@
+{# templates/admin/files/edit.html #}
+<!doctype html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <title>Düzenle · {{ filename }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root{
+      --brand:#0EA5A3; --brand-600:#0C8E8C; --accent:#C46C36;
+      --bg:#F7FAFC; --surface:#FFFFFF; --surface-2:#F3F6F8; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
+      --radius:12px; --shadow:0 8px 24px rgba(2,6,23,.06);
+    }
+    [data-theme="dark"]{
+      --bg:#0B1215; --surface:#0F1A1C; --surface-2:#0B1416; --text:#E5F2F2; --muted:#98A2B3; --border:#1F2A2E;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{padding:16px}
+    .row{display:grid;gap:12px}
+    .row.cols-2{grid-template-columns:1fr}
+    @media(min-width:900px){.row.cols-2{grid-template-columns:2fr 1fr}}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+    .spacer{flex:1}
+    .btn{height:36px;border:1px solid var(--border);background:var(--surface-2);padding:0 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .btn.primary:hover{background:var(--brand-600)}
+    .muted{color:var(--muted);font-size:12px}
+    textarea{width:100%;min-height:60vh;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);color:var(--text);padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+    input[type="text"],select{height:36px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:0 10px}
+    .info{display:grid;gap:8px}
+    .nowrap{white-space:nowrap}
+    .warning{color:#b45309}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <a class="btn" href="{{ url_for('files_admin.index', p='/'.join(path_rel.split('/')[:-1])) }}">‹ Geri</a>
+    <div class="spacer"></div>
+    <a class="btn" href="{{ url_for('files_admin.download', p=path_rel) }}">İndir</a>
+  </div>
+
+  <div class="row cols-2">
+    <div class="card">
+      <h3 style="margin:0 0 8px 0" title="{{ path_rel }}">{{ filename }}</h3>
+      {% if is_text %}
+        <form method="post" action="{{ url_for('files_admin.save_file') }}">
+          <input type="hidden" name="p" value="{{ path_rel }}">
+          <div style="display:flex;gap:8px;align-items:center;margin:8px 0">
+            <label class="muted">Encoding</label>
+            <select name="encoding">
+              <option value="utf-8" selected>utf-8</option>
+              <option value="utf-8-sig">utf-8-sig</option>
+              <option value="iso-8859-9">iso-8859-9</option>
+              <option value="cp1254">cp1254</option>
+            </select>
+            <div class="muted">Boyut: {{ (size or 0) }} B</div>
+            <div class="spacer"></div>
+            <button class="btn primary" type="submit">Kaydet</button>
+          </div>
+          <textarea name="content" spellcheck="false">{{ content or '' }}</textarea>
+        </form>
+      {% else %}
+        <p class="warning"><strong>Bu dosya metin değil.</strong> Boyut: {{ size }} B</p>
+        <p class="muted">Metin olmayan dosyalar düzenlenemez. İndirebilir veya bulunduğu klasöre dönüp değişiklik yapabilirsin.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h4 style="margin:0 0 8px 0">Bilgi</h4>
+      <div class="info muted">
+        <div><strong>Yol:</strong> /{{ path_rel }}</div>
+        <div><strong>Ad:</strong> {{ filename }}</div>
+        <div><strong>Tür:</strong> {{ 'Metin' if is_text else 'Binary' }}</div>
+        <div><strong>Boyut:</strong> <span id="size">{{ size }}</span></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+      <h4 style="margin:0 0 8px 0">Hızlı İşlemler</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn" href="{{ url_for('files_admin.index', p='/'.join(path_rel.split('/')[:-1])) }}">Klasöre Git</a>
+        <a class="btn" href="{{ url_for('files_admin.download', p=path_rel) }}">Dosyayı İndir</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function humanBytes(bytes){
+  bytes = Number(bytes||0);
+  if(bytes < 1024) return bytes + " B";
+  const units = ["KB","MB","GB","TB"];
+  let u=-1; do{ bytes/=1024; u++ } while(bytes>=1024 && u<units.length-1);
+  return bytes.toFixed(bytes<10?2:bytes<100?1:0)+" "+units[u];
+}
+(function(){
+  var s = document.getElementById('size');
+  if(s){ s.textContent = humanBytes(s.textContent); }
+})();
+</script>
+</body>
+</html>

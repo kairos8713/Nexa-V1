@@ -1,0 +1,181 @@
+{% extends "base_public.html" %}
+
+{% block head %}
+<style>
+    .category-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(15, 23, 19, 0.9);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 0;
+    }
+
+    .category-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .back-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--sand);
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.25rem;
+    }
+
+    .category-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        text-align: center;
+        flex-grow: 1;
+        max-width: 60%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .items-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 8rem;
+    }
+
+    .subcat-section {
+        margin-bottom: 4rem;
+    }
+
+    .subcat-title {
+        color: var(--sand);
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--sand);
+        padding-left: 1rem;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-cols: 1fr;
+        gap: 1.5rem;
+    }
+
+    .product-card {
+        background: #1c2d22;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        display: flex;
+        gap: 1.25rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    .product-card:hover {
+        transform: scale(1.02);
+    }
+
+    .product-image {
+        width: 100px;
+        height: 100px;
+        flex-shrink: 0;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-info {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .product-info h3 {
+        font-size: 1.25rem;
+        color: white;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+    }
+
+    .product-description {
+        font-size: 0.9rem;
+        color: rgba(247, 245, 239, 0.6);
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .product-price {
+        color: var(--sand);
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+
+    .empty-state {
+        text-align: center;
+        color: rgba(198, 182, 140, 0.5);
+        padding: 5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="category-header">
+    <div class="container category-header-content">
+        <a href="/menu" class="back-link">
+            <span>←</span>
+            <span>Menü</span>
+        </a>
+        <h1 class="category-title">{{ category.name }}</h1>
+        <div style="width: 50px;"></div> <!-- Spacer for centering -->
+    </div>
+</div>
+
+<div class="items-container">
+    {% for subcat, products in grouped_products.items() %}
+    <section class="subcat-section animate-up" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+        {% if subcat != 'Diğer' %}
+        <h2 class="subcat-title">{{ subcat }}</h2>
+        {% endif %}
+
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card">
+                {% if product.image_url %}
+                <div class="product-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                </div>
+                {% endif %}
+
+                <div class="product-info">
+                    <h3>{{ product.name }}</h3>
+                    <p class="product-description">{{ product.description or '' }}</p>
+                    <div class="product-price">{{ product.price }} ₺</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+
+    {% if not grouped_products %}
+    <div class="empty-state animate-up">
+        <p>Bu kategoride henüz ürün bulunmuyor.</p>
+        <a href="/menu" class="btn-outline" style="margin-top: 2rem;">Menüye Dön</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

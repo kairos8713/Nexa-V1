@@ -1,0 +1,264 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}İstatistikler{% endblock %}
+
+{% block styles %}
+<style>
+  :root {
+    --brand-primary: #0EA5A3; --brand-primary-600: #0C8E8C; --accent: #C46C36;
+    --bg: #F7FAFC; --bg-elev: #FFFFFF; --text: #0F172A; --text-muted: #64748B;
+    --border: #E5E7EB; --surface-2: #F4F7FB; --shadow: 0 8px 24px rgba(2, 6, 23, .06); --radius: 12px;
+  }
+  [data-theme="dark"] {
+    --bg: #0B1215; --bg-elev: #0F1A1C; --text: #E5F2F2; --text-muted: #89A3A3; --border: #1F2A2E; --surface-2: #121E21;
+    --shadow: 0 12px 28px rgba(0,0,0,.32);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); }
+
+  .nx-container { width: 100%; max-width: 1240px; margin: 0 auto; padding: 12px 16px 20px; }
+  .nx-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 16px; }
+  .nx-title { margin: 0; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+
+  .nx-btn {
+    height: 38px; border-radius: var(--radius); padding: 0 14px; font-weight: 700; cursor: pointer;
+    border: 1px solid transparent; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--bg-elev); color: var(--text); box-shadow: var(--shadow);
+  }
+  .nx-btn.primary { background: var(--brand-primary); color: #fff; border-color: transparent; }
+  .nx-btn.primary:hover { background: var(--brand-primary-600); }
+
+  .nx-input, .nx-select {
+    height: 38px; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 0 12px; background: var(--bg-elev); outline: none; color: var(--text);
+  }
+
+  .nx-card { background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+    display: flex; flex-direction: column; }
+  .nx-card-hdr {
+    padding: 14px 16px; background: var(--surface-2);
+    border-bottom: 1px solid var(--border); font-weight: 700;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .nx-card-body { padding: 16px; }
+
+  .nx-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 0; margin: 0 0 10px; border-bottom: 1px solid var(--border); transition: none; }
+  .nx-tab { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px;
+    border-bottom: 2px solid transparent; text-decoration: none; font-weight: 700;
+    color: var(--text); border-radius: 10px 10px 0 0; transition: none; }
+  .nx-tab.active { border-color: var(--brand-primary); color: var(--brand-primary); }
+
+  .nx-filter { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 0 0 16px; }
+  .nx-filter .grp { display: flex; flex-direction: column; gap: 6px; }
+  .nx-filter label { font-size: .88rem; color: var(--text-muted); font-weight: 600; }
+  .nx-window { margin-left: auto; color: var(--text-muted); font-size: .95rem; }
+
+  .nx-grid { display: grid; gap: 12px; }
+  .nx-grid.cols-3 { grid-template-columns: 1fr; }
+  .nx-grid.cols-2 { grid-template-columns: 1fr; }
+  @media (min-width: 900px) {
+    .nx-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .nx-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  }
+
+  .nx-kpi { display: flex; flex-direction: column; gap: 6px; }
+  .nx-kpi .label { color: var(--text-muted); font-weight: 600; }
+  .nx-kpi .value { font-size: 1.5rem; font-weight: 800; }
+
+  .nx-table { width: 100%; border-collapse: collapse; }
+  .nx-table thead th { background: var(--surface-2); border-bottom: 1px solid var(--border); padding: 10px; font-weight: 700; text-align: left; white-space: nowrap; cursor: pointer; }
+  .nx-table tbody td { border-bottom: 1px dashed var(--border); padding: 10px; vertical-align: middle; }
+  .nx-right { text-align: right; }
+  .nx-badge { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-elev); color: var(--text); font-weight: 700; }
+  .nx-btn-today { display: block; width: 100%; padding: 12px; text-align: center; background: var(--surface-2); color: var(--text); text-decoration: none; font-weight: 700; border-radius: var(--radius); border: 1px solid var(--border); margin-top: 10px; transition: 0.2s; }
+</style>
+{% endblock %}
+
+{% macro fnum(val) -%}{{ "{:,.2f}".format(val or 0).replace(",", "v").replace(".", ",").replace("v", ".") }}{%- endmacro %}
+{% macro fint(val) -%}{{ "{:,.0f}".format(val or 0).replace(",", ".") }}{%- endmacro %}
+
+{% block content %}
+<div class="nx-container">
+  <div class="nx-head">
+    <h2 class="nx-title">📈 İstatistikler</h2>
+    <div class="nx-badge {% if instant %}warn{% else %}muted{% endif %}">
+      {% if instant %} Anlık (05:00 → Şimdi) {% else %} Cutoff: 05:00 {% endif %}
+    </div>
+  </div>
+
+  <nav class="nx-tabs">
+    {% set base = url_for('istatistikler.istatistikler') %}
+    {% for key,label in [('tarih','Tarih'),('bolge','Bölgeler'),('personel','Personeller'),('saat','Saatler'),('ekran','Ekranlar'),('urun','Kategoriler'),('analiz','Ürün Analizi')] %}
+      <a class="nx-tab {{ 'active' if tab==key else '' }}" href="{{ base }}?tab={{ key }}&from={{ start_ui}}&to={{ end_ui}}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <form class="nx-filter" method="get" action="{{ url_for('istatistikler.istatistikler') }}">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <div class="grp"><label>Başlangıç</label><input type="date" class="nx-input" name="from" value="{{ start_ui }}"></div>
+    <div class="grp"><label>Bitiş</label><input type="date" class="nx-input" name="to" value="{{ end_ui }}"></div>
+    <div class="grp"><button class="nx-btn primary" type="submit">Uygula</button></div>
+    <div class="nx-window">Pencere: {{ start.strftime('%d.%m.%Y') }} – {{ end.strftime('%d.%m.%Y') }}</div>
+  </form>
+
+  <section class="nx-grid cols-3" style="margin-bottom: 12px;">
+    <div class="nx-card"><div class="nx-card-body nx-kpi"><div class="label">Tahsilat (Net)</div><div class="value">{{ fnum(tahsilat) }} ₺</div></div></div>
+    <div class="nx-card"><div class="nx-card-body nx-kpi"><div class="label">İndirim</div><div class="value">{{ fnum(indirim_total) }} ₺</div></div></div>
+    <div class="nx-card"><div class="nx-card-body nx-kpi"><div class="label">Açık (Anlık)</div><div class="value">{{ fnum(open_total) }} ₺</div></div></div>
+    <div class="nx-card"><div class="nx-card-body nx-kpi"><div class="label">Toplam Ciro</div><div class="value">{{ fnum(ciro_total) }} ₺</div></div></div>
+    <div class="nx-card"><div class="nx-card-body nx-kpi"><div class="label">İşlem Adedi</div><div class="value">{{ fint(masa_sayisi) }}</div></div></div>
+    <div class="nx-card"><div class="nx-card-body nx-kpi"><div class="label">Ortalama Fiş</div><div class="value">{{ fnum(ort_fis) }} ₺</div></div></div>
+  </section>
+
+  <section class="nx-grid cols-2">
+    {% if tab == 'analiz' %}
+      <div class="nx-card"><div class="nx-card-hdr">Masa Başı Katma Değer (₺)</div><div class="nx-card-body"><canvas id="chartKatki" height="200"></canvas></div></div>
+      <div class="nx-card"><div class="nx-card-hdr">İptal Oranları (%)</div><div class="nx-card-body"><canvas id="chartIptal" height="200"></canvas></div></div>
+      
+      <div class="nx-card">
+        <div class="nx-card-hdr"><span>Personel Satış Dağılımı</span><select id="staffSelect" class="nx-select"></select></div>
+        <div class="nx-card-body" style="height: 350px;"><canvas id="chartStaffProduct"></canvas></div>
+      </div>
+
+      <div class="nx-card">
+        <div class="nx-card-hdr"><span>Personel Ciro Dağılımı</span><select id="pieTypeSelect" class="nx-select"><option value="categories">Kategori</option><option value="screens">Ekran</option></select></div>
+        <div class="nx-card-body" style="height: 350px;"><canvas id="chartDistributionPie"></canvas></div>
+      </div>
+
+      <div class="nx-card" style="grid-column: 1 / -1;">
+        <div class="nx-card-hdr">Detaylı Ürün Analiz Tablosu</div>
+        <div class="nx-card-body" style="padding:0; overflow-x:auto">
+          <table class="nx-table sortable" id="statTable">
+            <thead><tr><th>Ürün</th><th class="nx-right">Adet</th><th class="nx-right">Adisyon</th><th class="nx-right">Ciro</th><th class="nx-right">Masa Katkı</th></tr></thead>
+            <tbody>
+              {% for r in urun_performans %}
+              <tr><td>{{ r.name }}</td><td class="nx-right">{{ fint(r.adet) }}</td><td class="nx-right">{{ fint(r.islem_sayisi) }}</td><td class="nx-right" data-sort="{{ r.ciro }}">{{ fnum(r.ciro) }} ₺</td><td class="nx-right" data-sort="{{ r.masa_katki }}"><strong style="color:var(--brand-primary)">+ {{ fnum(r.masa_katki) }} ₺</strong></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    {% elif tab == 'ekran' %}
+      <div class="nx-card" style="grid-column: 1 / -1;">
+        <div class="nx-card-hdr">Ekran Bazlı Satış Özeti</div>
+        <div class="nx-card-body nx-table-wrap">
+          <table class="nx-table sortable">
+            <thead><tr><th>Ekran</th><th class="nx-right">Satılan Adet</th><th class="nx-right">Toplam Ciro</th></tr></thead>
+            <tbody>
+              {% for r in ekranlar %}
+              <tr><td>{{ r.ekran }}</td><td class="nx-right">{{ fint(r.adet) }}</td><td class="nx-right">{{ fnum(r.tutar) }} ₺</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="nx-card" style="grid-column: 1 / -1;"><div class="nx-card-hdr">Ekranlar – Adet & Ciro (Grafik)</div><div class="nx-card-body"><canvas id="chartEkranBar" height="110"></canvas></div></div>
+      <div class="nx-card" style="grid-column: 1 / -1;"><div class="nx-card-hdr">Ekran Uyumluluk Tablosu (Pozitif Korelasyon)</div><div class="nx-card-body nx-table-wrap">
+          <table class="nx-table"><thead><tr><th>Ekran Çifti</th><th class="nx-right">Birlikte Sipariş</th><th class="nx-right">Etki</th></tr></thead><tbody>
+            {% for r in uyumlu_ekranlar %}<tr><td>{{ r.cift }}</td><td class="nx-right">{{ fint(r.adet) }}</td><td class="nx-right"><span class="nx-badge">Yüksek</span></td></tr>{% else %}<tr><td colspan="3" class="nx-right">Hesaplanıyor...</td></tr>{% endfor %}
+          </tbody></table>
+      </div></div>
+
+    {% elif tab == 'urun' %}
+      <div class="nx-card" style="grid-column: 1 / -1;">
+        <div class="nx-card-hdr">Kategori Bazlı Satış Özeti</div>
+        <div class="nx-card-body nx-table-wrap">
+          <table class="nx-table sortable">
+            <thead><tr><th>Kategori</th><th class="nx-right">Satılan Adet</th><th class="nx-right">Toplam Ciro</th></tr></thead>
+            <tbody>
+              {% for r in kategori %}
+              <tr><td>{{ r.kat }}</td><td class="nx-right">{{ fint(r.adet) }}</td><td class="nx-right">{{ fnum(r.tutar) }} ₺</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="nx-card" style="grid-column: 1 / -1;"><div class="nx-card-hdr">Kategori Uyumluluk Tablosu</div><div class="nx-card-body nx-table-wrap">
+          <table class="nx-table"><thead><tr><th>Kategori Çifti</th><th class="nx-right">Birlikte Sipariş</th><th class="nx-right">Etki</th></tr></thead><tbody>
+            {% for r in uyumlu_kategoriler %}<tr><td>{{ r.cift }}</td><td class="nx-right">{{ fint(r.adet) }}</td><td class="nx-right"><span class="nx-badge">Pozitif</span></td></tr>{% else %}<tr><td colspan="3" class="nx-right">Hesaplanıyor...</td></tr>{% endfor %}
+          </tbody></table>
+      </div></div>
+      <div class="nx-card" style="grid-column: 1 / -1;"><div class="nx-card-hdr">Kategori Bazlı Trend</div><div class="nx-card-body" style="height: 300px;"><canvas id="mainChart"></canvas></div></div>
+
+    {% else %}
+      <div class="nx-card" style="grid-column: 1 / -1;"><div class="nx-card-hdr">Genel Trend Analizi</div><div class="nx-card-body" style="height: 300px;"><canvas id="mainChart"></canvas></div></div>
+      <div class="nx-card" style="grid-column: 1 / -1;"><div class="nx-card-hdr">Veri Tablosu</div><div class="nx-card-body" style="padding:0; overflow-x:auto">
+          <table class="nx-table sortable" id="statTable">
+            {% if tab == 'tarih' %}<thead><tr><th>Tarih</th><th class="nx-right">Tahsilat</th></tr></thead><tbody>{% for r in gunluk %}<tr><td>{{ r.gun }}</td><td class="nx-right">{{ fnum(r.tutar) }} ₺</td></tr>{% endfor %}</tbody>{% endif %}
+            {% if tab == 'bolge' %}<thead><tr><th>Bölge</th><th class="nx-right">Masa</th><th class="nx-right">Ciro</th><th class="nx-right">Ort. Masa</th></tr></thead><tbody>{% for r in bolgeler %}<tr><td>{{ r.bolge }}</td><td class="nx-right">{{ fint(r.masa) }}</td><td class="nx-right">{{ fnum(r.tutar) }} ₺</td><td class="nx-right">{{ fnum(r.ort_masa) }} ₺</td></tr>{% endfor %}</tbody>{% endif %}
+            {% if tab == 'personel' %}<thead><tr><th>Personel</th><th class="nx-right">Masa</th><th class="nx-right">Ciro</th><th class="nx-right">Ort. Masa</th></tr></thead><tbody>{% for r in garsonlar %}<tr><td>{{ r.ad }}</td><td class="nx-right">{{ fint(r.masa) }}</td><td class="nx-right">{{ fnum(r.tutar) }} ₺</td><td class="nx-right">{{ fnum(r.ort_masa) }} ₺</td></tr>{% endfor %}</tbody>{% endif %}
+            {% if tab == 'saat' %}<thead><tr><th>Saat (GMT+3)</th><th class="nx-right">Ciro</th></tr></thead><tbody>{% for r in saatler %}<tr><td>{{ "%02d:00"|format((r.saat|int) % 24) }}</td><td class="nx-right">{{ fnum(r.tutar) }} ₺</td></tr>{% endfor %}</tbody>{% endif %}
+          </table>
+      </div></div>
+    {% endif %}
+  </section>
+
+  <a href="{{ url_for('istatistikler.istatistikler', tab=tab, instant=1) }}" class="nx-btn-today">⚡ Sadece Bugünü Gör (05:00 → Şimdi)</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function(){
+  const brand = '#0EA5A3'; const tab = "{{ tab }}";
+  const numFmt = v => new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+
+  // SIRALAMA FONKSİYONU
+  document.querySelectorAll('table.sortable th').forEach(th => {
+    th.addEventListener('click', () => {
+      const table = th.closest('table'); const tbody = table.querySelector('tbody'); const rows = Array.from(tbody.querySelectorAll('tr'));
+      const index = Array.from(th.parentNode.children).indexOf(th); const asc = th.dataset.asc = th.dataset.asc !== 'true';
+      rows.sort((a, b) => {
+        const v1 = a.children[index].dataset.sort || a.children[index].innerText.replace(/[^0-9.-]+/g,"").replace(",", ".");
+        const v2 = b.children[index].dataset.sort || b.children[index].innerText.replace(/[^0-9.-]+/g,"").replace(",", ".");
+        return asc ? parseFloat(v1) - parseFloat(v2) : parseFloat(v2) - parseFloat(v1);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+
+  if(tab === 'analiz') {
+    const katkiRaw = [{% for r in urun_performans %}{n:'{{r.name}}',v:{{r.masa_katki}}},{% endfor %}].sort((a,b)=>b.v-a.v).slice(0,10);
+    new Chart(document.getElementById('chartKatki'), { type: 'bar', data: { labels: katkiRaw.map(x=>x.n), datasets: [{ label: '₺', data: katkiRaw.map(x=>x.v), backgroundColor: brand, borderRadius: 6 }] }, options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+
+    const iptalRaw = [{% for r in iptal_analizi %}{n:'{{r.name}}',o:{{r.oran}}},{% endfor %}].sort((a,b)=>b.o-a.o).slice(0,10);
+    new Chart(document.getElementById('chartIptal'), { type: 'bar', data: { labels: iptalRaw.map(x=>x.n), datasets: [{ label: '%', data: iptalRaw.map(x=>x.o), backgroundColor: '#C46C36', borderRadius: 6 }] }, options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+
+    const staffStats = {{ (staff_json or '{}')|safe }};
+    const staffSelect = document.getElementById('staffSelect');
+    Object.keys(staffStats).filter(u => u !== 'GENEL' && u.toLowerCase() !== 'admin').sort().forEach(u => {
+        let opt = document.createElement('option'); opt.value = u; opt.textContent = u; staffSelect.appendChild(opt);
+    });
+
+    let sChart = new Chart(document.getElementById('chartStaffProduct'), { type: 'bar', data: { labels: [], datasets: [{ label: 'Adet', data: [], backgroundColor: brand }] }, options: { indexAxis: 'y', maintainAspectRatio: false } });
+    let pChart = new Chart(document.getElementById('chartDistributionPie'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#0EA5A3','#C46C36','#64748B','#0C8E8C','#E2E8F0','#F6AD55'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
+
+    function updateStaff() {
+        const u = staffSelect.value; if(!u) return;
+        const d = staffStats[u];
+        const sortedP = d.products.sort((a,b)=>b.q-a.q).slice(0,12);
+        sChart.data.labels = sortedP.map(x=>x.p); sChart.data.datasets[0].data = sortedP.map(x=>x.q); sChart.update();
+        const pieT = document.getElementById('pieTypeSelect').value;
+        const pEntries = Object.entries(d[pieT]).sort((a,b)=>b[1]-a[1]);
+        pChart.data.labels = pEntries.map(x=>x[0]); pChart.data.datasets[0].data = pEntries.map(x=>x[1]); pChart.update();
+    }
+    staffSelect.onchange = updateStaff; document.getElementById('pieTypeSelect').onchange = updateStaff;
+    if(staffSelect.options.length > 0) updateStaff();
+
+  } else if (tab === 'ekran') {
+    new Chart(document.getElementById('chartEkranBar'), { type: 'bar', data: { labels: [{% for r in ekranlar %}'{{ r.ekran }}',{% endfor %}], datasets: [{ label: 'Adet', data: [{% for r in ekranlar %}{{ r.adet }},{% endfor %}], backgroundColor: '#64748B' }, { label: 'Ciro', data: [{% for r in ekranlar %}{{ r.tutar }},{% endfor %}], backgroundColor: brand }] }, options: { maintainAspectRatio: false } });
+  } else {
+    const mainCtx = document.getElementById('mainChart'); if(!mainCtx) return;
+    let labels = [], values = [], type = (tab==='tarih'||tab==='saat')?'line':'bar';
+    {% if tab == 'tarih' %} labels = [{% for r in gunluk %}'{{ r.gun }}',{% endfor %}]; values = [{% for r in gunluk %}{{ r.tutar }},{% endfor %}];
+    {% elif tab == 'saat' %} labels = [{% for r in saatler %}'{{ "%02d:00"|format((r.saat|int) % 24) }}',{% endfor %}]; values = [{% for r in saatler %}{{ r.tutar }},{% endfor %}];
+    {% elif tab == 'bolge' %} labels = [{% for r in bolgeler %}'{{ r.bolge }}',{% endfor %}]; values = [{% for r in bolgeler %}{{ r.tutar }},{% endfor %}];
+    {% elif tab == 'personel' %} labels = [{% for r in garsonlar %}'{{ r.ad }}',{% endfor %}]; values = [{% for r in garsonlar %}{{ r.tutar }},{% endfor %}];
+    {% elif tab == 'urun' %} labels = [{% for r in kategori %}'{{ r.kat }}',{% endfor %}]; values = [{% for r in kategori %}{{ r.tutar }},{% endfor %}]; {% endif %}
+    new Chart(mainCtx, { type: type, data: { labels, datasets: [{ label: 'Ciro', data: values, borderColor: brand, backgroundColor: (type==='line'?'rgba(14, 165, 163, 0.1)':brand), tension: 0.25, fill: true }] }, options: { maintainAspectRatio: false } });
+  }
+})();
+</script>
+{% endblock %}

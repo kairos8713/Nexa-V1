@@ -1,0 +1,296 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block content %}
+<style>
+    /* Professional CMS Dashboard Styles */
+    :root {
+        --cms-primary: #0EA5A3;
+        --cms-primary-soft: rgba(14, 165, 163, 0.08);
+        --cms-text-dark: #1e293b;
+        --cms-text-muted: #64748b;
+        --cms-surface: #ffffff;
+        --cms-bg: #f8fafc;
+        --cms-border: #e2e8f0;
+        --cms-radius: 16px;
+        --cms-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --cms-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --cms-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --cms-font: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="dark"] {
+        --cms-text-dark: #f1f5f9;
+        --cms-text-muted: #94a3b8;
+        --cms-surface: #1e293b;
+        --cms-bg: #0f172a;
+        --cms-border: #334155;
+        --cms-primary-soft: rgba(14, 165, 163, 0.2);
+    }
+
+    .cms-dashboard {
+        font-family: var(--cms-font);
+        color: var(--cms-text-dark);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Hero Section */
+    .cms-hero {
+        background: linear-gradient(135deg, var(--cms-primary), #0c8e8c);
+        color: white;
+        padding: 2.5rem 2rem;
+        border-radius: var(--cms-radius);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--cms-shadow-md);
+    }
+
+    .cms-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .cms-hero h2 {
+        font-weight: 700;
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+        position: relative;
+    }
+
+    .cms-hero p {
+        opacity: 0.9;
+        font-size: 1.05rem;
+        margin-bottom: 0;
+        position: relative;
+        max-width: 600px;
+    }
+
+    /* Stats Grid */
+    .cms-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 992px) {
+        .cms-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Cards */
+    .cms-card {
+        background: var(--cms-surface);
+        border: 1px solid var(--cms-border);
+        border-radius: var(--cms-radius);
+        padding: 2rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .cms-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--cms-shadow-lg);
+        border-color: var(--cms-primary);
+    }
+
+    .cms-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        font-size: 1.5rem;
+        transition: transform 0.3s ease;
+    }
+
+    .cms-card:hover .cms-card-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .cms-card h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--cms-text-dark);
+    }
+
+    .cms-card p {
+        font-size: 0.95rem;
+        color: var(--cms-text-muted);
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+        flex-grow: 1;
+    }
+
+    .cms-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--cms-primary);
+        border-top: 1px solid var(--cms-border);
+        padding-top: 1rem;
+        margin-top: auto;
+    }
+
+    .cms-card-footer svg {
+        transition: transform 0.2s ease;
+    }
+
+    .cms-card:hover .cms-card-footer svg {
+        transform: translateX(4px);
+    }
+
+    .icon-bg-primary {
+        background: rgba(14, 165, 163, 0.1);
+        color: #0EA5A3;
+    }
+
+    .icon-bg-purple {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+    }
+
+    /* Blog */
+    .icon-bg-orange {
+        background: rgba(249, 115, 22, 0.1);
+        color: #f97316;
+    }
+
+    /* Categories */
+    .icon-bg-sky {
+        background: rgba(14, 165, 215, 0.1);
+        color: #0ea5e9;
+    }
+
+    /* Settings */
+
+    .badge-count {
+        background: var(--cms-bg);
+        color: var(--cms-text-dark);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid var(--cms-border);
+    }
+</style>
+
+<div class="container mt-4 cms-dashboard pb-5">
+    <!-- Hero -->
+    <div class="cms-hero">
+        <h2>İçerik Yönetim Merkezi</h2>
+        <p>Web sitenizin tüm içeriğini profesyonelce yönetin, düzenleyin ve yayınlayın.</p>
+    </div>
+
+    <!-- Grid -->
+    <div class="cms-grid">
+        <!-- Blog -->
+        <a href="{{ url_for('cms.blog_list') }}" class="cms-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="cms-card-icon icon-bg-purple">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                </div>
+                <span class="badge-count">{{ post_count }} Yazı</span>
+            </div>
+            <h3>Blog Yönetimi</h3>
+            <p>Blog yazılarınızı oluşturun, SEO ayarlarını yapın ve yayın durumlarını kontrol edin.</p>
+            <div class="cms-card-footer">
+                <span>Panele Git</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </div>
+        </a>
+
+        <!-- Categories -->
+        <a href="{{ url_for('cms.category_list') }}" class="cms-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="cms-card-icon icon-bg-orange">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                </div>
+                <span class="badge-count">{{ cat_count }} Kategori</span>
+            </div>
+            <h3>Kategoriler</h3>
+            <p>Menü kategorilerini sıralayın, görsellerini güncelleyin ve site yapısını düzenleyin.</p>
+            <div class="cms-card-footer">
+                <span>Düzenle</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </div>
+        </a>
+
+        <!-- Settings -->
+        <a href="{{ url_for('cms.settings') }}" class="cms-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="cms-card-icon icon-bg-sky">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
+                    </svg>
+                </div>
+                <span class="badge-count">Ayar</span>
+            </div>
+            <h3>Site Ayarları</h3>
+            <p>SEO Meta bilgileri, sosyal medya linkleri ve iletişim bilgilerinizi güncelleyin.</p>
+            <div class="cms-card-footer">
+                <span>Yapılandır</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

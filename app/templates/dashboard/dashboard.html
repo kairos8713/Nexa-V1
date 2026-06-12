@@ -1,0 +1,74 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Nexa · Dashboard{% endblock %}
+
+{% block styles %}
+<style>
+  .dash-col { display:flex; flex-direction:column; gap:12px; }
+
+  /* GRID tabanı */
+  .nx-grid { display:grid; gap:12px; padding: 0 16px; } /* sağ/sol boşluk eklendi */
+
+  /* Admin 2 kolon: 7/5 oran (>=900px) */
+  .nx-admin { grid-template-columns: 1fr; }
+  @media (min-width: 900px){
+    .nx-admin { grid-template-columns: 7fr 5fr; }
+  }
+
+  /* Cashier 3 kolon: 3/6/3 (>=1200px), 2 kolon (>=900px), mobil 1 kolon */
+  .nx-cashier { grid-template-columns: 1fr; }
+  @media (min-width: 900px){
+    .nx-cashier { grid-template-columns: 5fr 7fr; }
+  }
+  @media (min-width: 1200px){
+    .nx-cashier { grid-template-columns: 3fr 6fr 3fr; }
+  }
+
+  /* Mobilde ekran kenarına çok yapışmasın diye ekstra alt boşluk */
+  .nx-grid > .dash-col { margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ===== ADMIN: Solda Masalar, Sağda Hızlı İstatistikler ===== #}
+{% if role == 'admin' %}
+  <div class="nx-grid nx-admin">
+    <div class="dash-col">
+      {% include "dashboard/panels/_masalar_embed.html" %}
+    </div>
+    <div class="dash-col">
+      {% include "dashboard/panels/_istatistikler_quick.html" %}
+    </div>
+  </div>
+
+{# ===== CASHIER: Sol mini GünSonu | Orta Masalar (geniş) | Sağ mini Garsonlar ===== #}
+{% elif role in ['cashier','cashier-lite'] %}
+  <div class="nx-grid nx-cashier">
+    <div class="dash-col">
+      {% include "dashboard/panels/_gunsonu_mini.html" %}
+    </div>
+    <div class="dash-col">
+      {% include "dashboard/panels/_masalar_embed.html" %}
+    </div>
+    <div class="dash-col">
+      {% include "dashboard/panels/_garsonlar_mini.html" %}
+    </div>
+  </div>
+
+{# ===== WAITER: sadece Masalar ===== #}
+{% elif role == 'waiter' %}
+  <div class="dash-col" style="padding:0 16px;">
+    {% include "dashboard/panels/_masalar_embed.html" %}
+  </div>
+
+{# ===== BAR / NARGİLE / KITCHEN: tek panel, dashboard içinden işlem ===== #}
+{% elif role in ['bar','nargile','kitchen'] %}
+  <div class="dash-col" style="padding:0 16px;">
+    {% include "dashboard/panels/_station_embed.html" %}
+  </div>
+
+{% else %}
+  <div class="card mx-3"><div class="card-body text-muted">Bu rol için dashboard yapılandırması yok.</div></div>
+{% endif %}
+
+{% endblock %}

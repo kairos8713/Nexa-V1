@@ -1,0 +1,195 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Garsonlar · Yönetim Paneli{% endblock %}
+
+{% block styles %}
+<style>
+  :root{
+    --brand:#0EA5A3; --border:#e5e7eb; --surface:#fff; --surface2:#fafafa; --text:#111827;
+  }
+
+  .nx-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 12px 6px}
+  .nx-head h2{margin:0;font-weight:800;display:flex;align-items:center;gap:8px}
+  .nx-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  .nx-btn{height:36px;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  .nx-btn.primary{background:var(--brand);color:#fff}
+  .nx-btn.primary:hover{filter:brightness(.95)}
+  .nx-btn.outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .nx-btn.outline:hover{background:#f3f4f6}
+  .nx-btn.warn{background:#f59e0b;color:#111}
+  .nx-btn.warn:hover{filter:brightness(.95)}
+  .nx-btn.danger{background:#dc2626;color:#fff}
+  .nx-btn.danger:hover{background:#b91c1c}
+
+  .nx-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden;margin:0 12px 12px}
+  .nx-card-hdr{padding:12px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+  .nx-card-body{padding:12px}
+  .nx-filter{display:flex;gap:8px;align-items:center}
+  .nx-input{height:36px;border:1px solid var(--border);border-radius:10px;padding:0 12px;background:#fff;min-width:220px;outline:none}
+  .nx-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(14,165,163,.18)}
+
+  /* -------- Masaüstü Tablo -------- */
+  .table-wrap{overflow:auto}
+  table.nx-table{width:100%;border-collapse:collapse;table-layout:fixed}
+  table.nx-table thead th{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px;font-weight:700;text-align:left;white-space:nowrap}
+  table.nx-table tbody td{border-bottom:1px dashed var(--border);padding:10px;height:48px;vertical-align:middle;white-space:nowrap}
+
+  /* Oranlar (>=900px) */
+  @media (min-width: 900px){
+    table.nx-table th:nth-child(1),table.nx-table td:nth-child(1){width:28%} /* Kullanıcı adı */
+    table.nx-table th:nth-child(2),table.nx-table td:nth-child(2){width:24%} /* Son giriş */
+    table.nx-table th:nth-child(3),table.nx-table td:nth-child(3){width:18%} /* Mesai durumu */
+    table.nx-table th:nth-child(4),table.nx-table td:nth-child(4){width:30%} /* İşlemler */
+  }
+
+  /* Durum pill */
+  .nx-status{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border-radius:999px;font-weight:700;font-size:.85rem;border:1px solid}
+  .nx-status .dot{width:8px;height:8px;border-radius:50%}
+  .nx-status.on{background:rgba(34,197,94,.12);color:#166534;border-color:rgba(34,197,94,.35)}
+  .nx-status.on .dot{background:#22c55e}
+  .nx-status.off{background:rgba(239,68,68,.12);color:#7f1d1d;border-color:rgba(239,68,68,.35)}
+  .nx-status.off .dot{background:#ef4444}
+
+  .nx-act-row{display:flex;gap:8px;flex-wrap:wrap}
+  .nx-act-row form{display:inline-flex;margin:0}
+
+  /* --------- Mobil Kart Görünümü (<=700px) --------- */
+  @media (max-width: 700px){
+    /* Başlık barı sıkışmasın */
+    .nx-filter .nx-input{min-width:140px}
+    /* Tablo başlıklarını gizle, satırları karta çevir */
+    table.nx-table thead{display:none}
+    table.nx-table, table.nx-table tbody, table.nx-table tr, table.nx-table td{display:block;width:100%}
+    table.nx-table tr{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--surface)}
+    table.nx-table tbody td{
+      border:0;display:flex;justify-content:space-between;align-items:center;
+      padding:8px 6px;white-space:normal
+    }
+    /* Her hücreye etiket */
+    table.nx-table tbody td[data-label]:before{
+      content:attr(data-label);
+      font-weight:700;color:#374151;margin-right:12px;flex:1;min-width:120px;
+    }
+    /* Değer alanı */
+    table.nx-table tbody td > *:not(.nx-status):not(form):not(.nx-act-row){
+      flex:2; text-align:right;
+    }
+
+  /* İşlemler hücresinde butonlar alt alta ve tam genişlik */
+  .nx-act-row{
+    flex-direction: column;   /* dikey sırala */
+    align-items: stretch;     /* tam genişlik */
+    gap: 8px;
+    width: 100%;
+  }
+  .nx-act-row form,
+  .nx-act-row a{
+    width: 100%;
+    display: block;           /* linkler de blok olsun */
+  }
+  .nx-act-row .nx-btn{
+    width: 100%;              /* buton tam genişlik */
+    justify-content: center;  /* metni ortala */
+    white-space: normal;      /* uzun metin satır sarsın */
+    line-height: 1.2;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* Kart hücresinin içi sıkışmasın */
+  table.nx-table tbody td[data-label="İşlemler"]{
+    display:block;
+    width:100%;
+    height: max-content;
+    padding:8px 0;       /* iç boşluk */
+  }
+}
+  
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-head">
+  <h2>👥 Garsonlar</h2>
+  <div class="nx-actions">
+    <a href="{{ url_for('waiter.waiter_add') }}" class="nx-btn primary">➕ Yeni Garson Ekle</a>
+  </div>
+</div>
+
+<div class="nx-card">
+  <div class="nx-card-hdr">
+    <div>Garson Listesi</div>
+    <div class="nx-filter">
+      <input id="q" type="text" class="nx-input" placeholder="Ara: kullanıcı adı…">
+    </div>
+  </div>
+
+  <div class="nx-card-body table-wrap">
+    <table class="nx-table" id="waitersTable">
+      <thead>
+        <tr>
+          <th>Kullanıcı Adı</th>
+          <th>Son Giriş</th>
+          <th>Mesai Durumu</th>
+          <th>İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for garson in garsonlar %}
+        <tr data-row data-name="{{ (garson.username or '')|lower }}">
+          <!-- Masaüstü: normal; Mobil: data-label ile etiketli -->
+          <td data-label="Kullanıcı Adı" style="font-weight:700">{{ garson.username }}</td>
+          <td data-label="Son Giriş">
+            {% if garson.last_login %}
+              {{ garson.last_login.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td data-label="Mesai Durumu">
+            {% if garson.is_on_shift %}
+              <span class="nx-status on"><span class="dot"></span> Aktif</span>
+            {% else %}
+              <span class="nx-status off"><span class="dot"></span> Pasif</span>
+            {% endif %}
+          </td>
+          <td data-label="İşlemler">
+            <div class="nx-act-row">
+              <form method="POST" action="{{ url_for('waiter.waiter_shift_toggle', waiter_id=garson.id) }}">
+                <button type="submit" class="nx-btn outline">
+                  {{ '⏹ Mesai Bitir' if garson.is_on_shift else '▶ Mesai Başlat' }}
+                </button>
+              </form>
+              <a href="{{ url_for('waiter.waiter_reset_password', waiter_id=garson.id) }}" class="nx-btn warn">🔑 Şifre Sıfırla</a>
+            <form method="POST" action="{{ url_for('waiter.waiter_delete', waiter_id=garson.id) }}"
+                  onsubmit="return confirm('Bu garsonu silmek istediğinize emin misiniz?');">
+              <button type="submit" class="nx-btn danger">🗑 Sil</button>
+            </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-muted" style="padding:14px">Kayıt bulunamadı.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}{{ super() }}
+<script>
+  (function(){
+    const q = document.getElementById('q');
+    if(!q) return;
+    const rows = Array.from(document.querySelectorAll('#waitersTable tbody [data-row]'));
+    q.addEventListener('input', function(){
+      const s = (q.value || '').trim().toLowerCase();
+      rows.forEach(r=>{
+        const name = r.getAttribute('data-name') || '';
+        r.style.display = (!s || name.includes(s)) ? '' : 'none';
+      });
+    });
+  })();
+</script>
+{% endblock %}

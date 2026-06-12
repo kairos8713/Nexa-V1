@@ -1,0 +1,174 @@
+{% extends "base_public.html" %}
+
+{% block head %}
+<style>
+    .post-hero {
+        position: relative;
+        height: 60vh;
+        min-height: 400px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .hero-image {
+        position: absolute;
+        inset: 0;
+    }
+
+    .hero-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .hero-fallback {
+        width: 100%;
+        height: 100%;
+        background: #1c2d22;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 4rem;
+        color: rgba(198, 182, 140, 0.1);
+    }
+
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, var(--deep), rgba(15, 23, 19, 0.5), transparent);
+    }
+
+    .hero-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 4rem 1.5rem;
+        text-align: center;
+    }
+
+    .post-date {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        border: 1px solid rgba(198, 182, 140, 0.3);
+        border-radius: 999px;
+        background: rgba(15, 23, 19, 0.6);
+        backdrop-filter: blur(8px);
+        color: var(--sand);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        margin-bottom: 2rem;
+    }
+
+    h1 {
+        font-size: clamp(2.5rem, 6vw, 4rem);
+        color: white;
+        max-width: 1000px;
+        margin: 0 auto;
+        line-height: 1.1;
+    }
+
+    .post-body {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 5rem 1.5rem 10rem;
+    }
+
+    /* Prose-like styling for CMS content */
+    .content-render {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        color: rgba(247, 245, 239, 0.85);
+        font-weight: 300;
+    }
+
+    .content-render p {
+        margin-bottom: 2rem;
+    }
+
+    .content-render h2,
+    .content-render h3 {
+        color: var(--sand);
+        margin: 3rem 0 1.5rem;
+        line-height: 1.2;
+    }
+
+    .content-render img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 3rem 0;
+    }
+
+    .content-render blockquote {
+        border-left: 2px solid var(--sand);
+        padding-left: 2rem;
+        margin: 3rem 0;
+        font-style: italic;
+        color: white;
+        font-size: 1.5rem;
+        font-family: 'Cormorant Garamond', serif;
+    }
+
+    .post-footer {
+        margin-top: 6rem;
+        padding-top: 3rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .share-label {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.5rem;
+        color: var(--sand);
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<article>
+    <div class="post-hero">
+        <div class="hero-image">
+            {% if post.cover_image %}
+            <img src="{{ post.cover_image }}" alt="{{ post.title }}">
+            {% else %}
+            <div class="hero-fallback">Veloya Blog</div>
+            {% endif %}
+        </div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content container animate-up">
+            <div class="post-date">
+                {{ (post.published_at or post.created_at).strftime('%d %B %Y') }}
+            </div>
+            <h1>{{ post.title }}</h1>
+        </div>
+    </div>
+
+    <div class="post-body container">
+        <div class="content-render animate-up" style="animation-delay: 0.2s;">
+            {{ post.content|safe }}
+        </div>
+
+        <div class="post-footer">
+            <span class="share-label">Paylaş</span>
+            <div style="display: flex; gap: 1rem;">
+                <!-- Placeholder for social sharing if needed -->
+                <div
+                    style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, 0.6);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</article>
+{% endblock %}

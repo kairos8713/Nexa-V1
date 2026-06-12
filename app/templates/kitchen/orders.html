@@ -1,0 +1,33 @@
+<h1>Mutfak Siparişleri</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Ürün</th>
+      <th>Adet</th>
+      <th>Not</th>
+      <th>Durum</th>
+      <th>Durum Güncelle</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.product.name }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>{{ item.note or '-' }}</td>
+      <td>{{ item.status }}</td>
+      <td>
+        <form action="{{ url_for('kitchen.update_status', item_id=item.id) }}" method="POST">
+          <select name="status">
+            <option value="hazırlanıyor" {% if item.status == 'hazırlanıyor' %}selected{% endif %}>Hazırlanıyor</option>
+            <option value="hazır" {% if item.status == 'hazır' %}selected{% endif %}>Hazır</option>
+            <option value="teslim edildi" {% if item.status == 'teslim edildi' %}selected{% endif %}>Teslim Edildi</option>
+          </select>
+          <button type="submit">Güncelle</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

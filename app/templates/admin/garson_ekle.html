@@ -1,0 +1,152 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Yeni Garson Ekle · Yönetim Paneli{% endblock %}
+
+{% block styles %}
+<style>
+  /* Üst boşluk kompakt */
+  .nx-topbar + .container.nx-offset { padding-top: 8px; }
+  .container.nx-offset>:first-child{ margin-top:0!important }
+
+  .nx-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin:8px 12px 6px 12px;
+  }
+  .nx-head h2{margin:0;font-weight:800;display:flex;align-items:center;gap:8px}
+
+  .nx-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .nx-btn{
+    height:36px;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;
+    border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  }
+  .nx-btn.primary{background:var(--brand-primary,#0EA5A3);color:#fff}
+  .nx-btn.primary:hover{filter:brightness(.95)}
+  .nx-btn.outline{background:transparent;border:1px solid var(--border,#e5e7eb);color:var(--text,#111827)}
+  .nx-btn.outline:hover{background:#f3f4f6}
+  .nx-btn.muted{background:#eef2f7;color:#334155;border:1px solid #e2e8f0}
+
+  .nx-card{
+    background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);
+    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden;margin:0 12px 12px 12px;
+  }
+  .nx-card-hdr{
+    padding:12px 14px;background:var(--surface-2,#fafafa);border-bottom:1px solid var(--border,#e5e7eb);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700;
+  }
+  .nx-card-body{padding:16px}
+
+  .nx-form{max-width:560px;display:grid;gap:12px}
+  .nx-field{display:flex;flex-direction:column;gap:6px}
+  .nx-label{font-weight:700;color:var(--text,#111827)}
+  .nx-input{
+    height:38px;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:0 12px;
+    background:#fff;outline:none;color:var(--text,#111827);
+  }
+  .nx-input:focus{border-color:var(--brand-primary,#0EA5A3);box-shadow:0 0 0 3px rgba(14,165,163,.18)}
+
+  /* Şifre alanı + özel göz butonu */
+  .nx-pass-wrap{position:relative;display:flex;align-items:center}
+  .nx-pass-toggle{
+    position:absolute;right:8px;height:28px;width:32px;border-radius:8px;border:1px solid var(--border,#e5e7eb);
+    background:#fff;display:grid;place-items:center;cursor:pointer;
+  }
+  .nx-eye, .nx-eye-off{width:16px;height:16px}
+  .nx-eye svg, .nx-eye-off svg{display:block}
+
+  .nx-help{font-size:.85rem;color:#6b7280}
+
+  .nx-switch{
+    display:flex;align-items:center;gap:10px;margin-top:6px;user-select:none;cursor:pointer;
+  }
+  .nx-switch input{display:none}
+  .nx-switch .trk{
+    width:42px;height:24px;border-radius:999px;background:#e5e7eb;position:relative;transition:.2s border,.2s background;
+    border:1px solid #d1d5db;
+  }
+  .nx-switch .knob{
+    position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid #d1d5db;
+    transition:.2s left,.2s background;
+  }
+  .nx-switch input:checked + .trk{background:#0EA5A3;border-color:#0EA5A3}
+  .nx-switch input:checked + .trk .knob{left:22px;background:#fff}
+
+  .nx-actions-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-head">
+  <h2>🆕 Yeni Garson Ekle</h2>
+  <div class="nx-actions">
+    <a href="{{ url_for('waiter.waiter_list') }}" class="nx-btn outline">← Garson Listesine Dön</a>
+  </div>
+</div>
+
+<div class="nx-card">
+  <div class="nx-card-hdr">Bilgiler</div>
+  <div class="nx-card-body">
+    <form method="POST" class="nx-form" autocomplete="off">
+      {# CSRF kullanıyorsanız burada {{ form.csrf_token }} ekleyin #}
+
+      <div class="nx-field">
+        <label class="nx-label" for="username">Kullanıcı Adı</label>
+        <input id="username" name="username" type="text" class="nx-input" required>
+      </div>
+
+      <div class="nx-field">
+        <label class="nx-label" for="password">Şifre</label>
+        <div class="nx-pass-wrap">
+          <input id="password" name="password" type="password" class="nx-input" required>
+          <button type="button" class="nx-pass-toggle" id="togglePass" aria-label="Şifreyi göster/gizle">
+            <span class="nx-eye" id="eyeOn" style="display:block">
+              <!-- açık göz (basit, kendi çizimimiz) -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </span>
+            <span class="nx-eye-off" id="eyeOff" style="display:none">
+              <!-- kapalı göz -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3l18 18"/>
+                <path d="M10.6 10.6a3 3 0 004.24 4.24"/>
+                <path d="M2 12s3.5-6 10-6c2.2 0 4.1.7 5.7 1.7M22 12s-3.5 6-10 6c-2.2 0-4.1-.7-5.7-1.7"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+        <div class="nx-help">Şifre en az 6 karakter olmalı (öneri).</div>
+      </div>
+
+      <label class="nx-switch" title="Varsayılan: Kapalı">
+        <input type="checkbox" name="mesai_aktif" value="1">
+        <span class="trk"><span class="knob"></span></span>
+        <span>Mesaiyi aktif başlat</span>
+      </label>
+
+      <div class="nx-actions-row">
+        <button type="submit" class="nx-btn primary">➕ Ekle</button>
+        <a href="{{ url_for('waiter.waiter_list') }}" class="nx-btn muted">İptal</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}{{ super() }}
+<script>
+  // Şifre göster/gizle
+  (function(){
+    const input = document.getElementById('password');
+    const btn   = document.getElementById('togglePass');
+    const onI   = document.getElementById('eyeOn');
+    const offI  = document.getElementById('eyeOff');
+    if(!input || !btn) return;
+    btn.addEventListener('click', function(){
+      const isPwd = input.getAttribute('type') === 'password';
+      input.setAttribute('type', isPwd ? 'text' : 'password');
+      onI.style.display  = isPwd ? 'none' : 'block';
+      offI.style.display = isPwd ? 'block' : 'none';
+    });
+  })();
+</script>
+{% endblock %}

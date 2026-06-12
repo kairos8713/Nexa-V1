@@ -1,0 +1,240 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Adisyon #{{ order.id }} (Geçmiş){% endblock %}
+
+{% block styles %}
+<style>
+  /* === Layout === */
+  .gs-wrap{margin:12px}
+  .gs-grid{display:grid;gap:16px;grid-template-columns:1fr}
+  @media (min-width: 980px){ .gs-grid{grid-template-columns: 2fr 1fr} }
+
+  /* === Cards === */
+  .gs-card{
+    background:var(--surface, #111);
+    border:1px solid var(--border, #e5e7eb);
+    border-radius:12px;
+    box-shadow:0 10px 24px rgba(0,0,0,.06);
+    overflow:hidden;
+  }
+  .gs-hdr{
+    padding:12px 14px;
+    background:var(--surface-2, #f1f5f9);
+    border-bottom:1px solid var(--border, #e5e7eb);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-weight:700;color:var(--text,#111827)
+  }
+  .gs-body{padding:14px}
+
+  /* === KPI === */
+  .kpi-grid{display:grid;gap:12px;grid-template-columns:1fr}
+  @media (min-width: 820px){ .kpi-grid{grid-template-columns:repeat(3,1fr)} }
+  .kpi{
+    padding:12px 14px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--surface,#fff)
+  }
+  .kpi .label{font-size:.85rem;color:var(--muted,#6b7280);margin-bottom:4px}
+  .kpi .value{font-size:1.15rem;font-weight:800;color:var(--text,#111827)}
+
+  /* === Tables === */
+  .nx-table{width:100%;border-collapse:separate;border-spacing:0;color:var(--text,#111827)}
+  .nx-table thead th{
+    position:sticky;top:0;z-index:1;
+    background:var(--surface-2,#f1f5f9);
+    border-bottom:1px solid var(--border,#e5e7eb);
+    padding:10px;font-weight:700;text-align:left
+  }
+  .nx-table tbody td{padding:10px;border-bottom:1px dashed var(--border,#e5e7eb)}
+  .nx-table tbody tr:nth-child(odd){background:rgba(0,0,0,.02)}
+  .nx-table tfoot th{
+    background: color-mix(in srgb, var(--brand-primary,#0EA5A3) 12%, transparent);
+    border-top:1px solid var(--border,#e5e7eb);
+    padding:12px 10px;font-weight:800;color:var(--text,#111827)
+  }
+  .text-end{text-align:right}
+  .muted{color:var(--muted,#6b7280)}
+  .submeta{font-size:.78rem;color:var(--muted,#6b7280);margin-top:2px}
+
+  /* === Badges === */
+  .badge{
+    display:inline-block;font-size:.78rem;padding:.25rem .6rem;border-radius:999px;
+    border:1px solid var(--border,#e5e7eb);background:var(--surface-2,#f1f5f9);color:var(--text,#111827)
+  }
+  .badge-soft{background: color-mix(in srgb, var(--surface-2,#f1f5f9) 80%, transparent)}
+  .id-pill{font-weight:800;background: color-mix(in srgb, var(--brand-primary,#0EA5A3) 12%, transparent);border-color: color-mix(in srgb, var(--brand-primary,#0EA5A3) 30%, var(--border,#e5e7eb))}
+
+  /* === Header row === */
+  .head-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 12px 12px}
+  .title{margin:0;font-weight:800;display:flex;align-items:center;gap:10px;color:var(--text,#111827)}
+
+  /* === Dark mode iyileştirmeleri === */
+  @media (prefers-color-scheme: dark){
+    .nx-table tbody tr:nth-child(odd){background:rgba(255,255,255,.04)}
+    .gs-card{box-shadow:0 8px 16px rgba(0,0,0,.35)}
+    .gs-hdr{background: color-mix(in srgb, var(--surface,#0b0f14) 70%, var(--surface-2,#0f1720))}
+    .kpi{background: color-mix(in srgb, var(--surface,#0b0f14) 92%, black)}
+    .badge-soft{background:rgba(255,255,255,.06)}
+    .nx-table tfoot th{background: color-mix(in srgb, var(--brand-primary,#0EA5A3) 18%, transparent)}
+  }
+
+  @supports not (background: color-mix(in srgb, black 10%, white)){
+    .nx-table tfoot th{background: rgba(14,165,163,.12)}
+    .id-pill{background: rgba(14,165,163,.12);border-color: rgba(14,165,163,.3)}
+    .badge-soft{background: rgba(255,255,255,.06)}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{# --- normalize alanlar --- #}
+{% set masa_adi_safe = masa_adi or table_name or ('#' ~ (order.table_id or '-')) %}
+{% set garson_safe   = garson   or waiter_name or '-' %}
+{% set created_safe  = created_tr if created_tr is defined else (order.created_at if order and order.created_at else none) %}
+{% set items_list    = items_for_view if items_for_view is defined else (items or []) %}
+{% set totals_map    = item_display_totals if item_display_totals is defined else (item_totals or {}) %}
+
+<div class="head-row">
+  <h2 class="title">📄 Adisyon <span class="badge id-pill">#{{ order.id }}</span> — Geçmiş</h2>
+  <a class="nx-btn outline" href="{{ url_for('gecmis.gecmis_list') }}">← Listeye Dön</a>
+</div>
+
+<div class="gs-wrap">
+  <!-- KPIs -->
+  <div class="kpi-grid" style="margin-bottom:12px;">
+    <div class="kpi">
+      <div class="label">Masa</div>
+      <div class="value">{{ masa_adi_safe }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Garson</div>
+      <div class="value">{{ garson_safe }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Oluşturulma (TR)</div>
+      <div class="value">
+        {% if created_safe %}
+          {% if created_tr is defined and created_tr %}
+            {{ created_tr.strftime('%d.%m.%Y %H:%M') }}
+          {% else %}
+            {{ created_safe.strftime('%d.%m.%Y %H:%M') }}
+          {% endif %}
+        {% else %}-{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="gs-grid">
+    <!-- Sol: Ürünler -->
+    <div class="gs-card">
+      <div class="gs-hdr">🧾 Kalemler</div>
+      <div class="gs-body" style="padding:0;">
+        <table class="nx-table">
+          <thead>
+            <tr>
+              <th>Ürün</th>
+              <th class="text-end">Adet</th>
+              <th class="text-end">Tutar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items_list %}
+              <tr>
+                <td>
+                  {{ it.product.name if it.product else ('Ürün #' ~ it.product_id) }}
+                  {# ↳ Ekleyen garson + eklenme anı (TR) #}
+                  {% if item_meta is defined %}
+                    {% set meta = item_meta.get(it.id) %}
+                    {% if meta and (meta.waiter or meta.created_tr) %}
+                      <div class="submeta">
+                        {{ meta.waiter or '-' }}
+                        {% if meta.created_tr %} — {{ meta.created_tr.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td class="text-end">{{ it.quantity or 1 }}</td>
+                <td class="text-end">{{ '%.2f'|format(totals_map.get(it.id, 0.0)) }} ₺</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="3" class="muted" style="padding:12px;">Kalem yok</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" class="text-end">Toplam</th>
+              {% set toplam_tutar = (total_items if total_items is defined else (items_list|map(attribute='id')|map(totals_map.get)|sum)) %}
+              <th class="text-end">{{ '%.2f'|format(toplam_tutar or 0) }} ₺</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sağ: Ödemeler -->
+    <div class="gs-card">
+      <div class="gs-hdr">💳 Ödemeler</div>
+      <div class="gs-body" style="padding:0;">
+        <table class="nx-table">
+          <thead>
+            <tr>
+              <th>Ödeme Yöntemi</th>
+              <th class="text-end">Adet</th>
+              <th class="text-end">Tutar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if payments %}
+              {% set looks_grouped = payments[0] is mapping and 'method' in payments[0] %}
+              {% if looks_grouped %}
+                {% for p in payments %}
+                  <tr>
+                    <td>{{ p.method }}</td>
+                    <td class="text-end">{{ p.adet }}</td>
+                    <td class="text-end">{{ '%.2f'|format(p.tutar or 0) }} ₺</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                {% set tmp = namespace(group={}) %}
+                {% for pp in payments %}
+                  {% set m = pp.payment_method or '-' %}
+                  {% set old = tmp.group.get(m, {'adet':0, 'tutar':0.0}) %}
+                  {% set _ = old.update({'adet': old.adet + 1, 'tutar': (old.tutar + (pp.amount or 0.0))}) %}
+                  {% set _ = tmp.group.update({m: old}) %}
+                {% endfor %}
+                {% for m, row in tmp.group.items() %}
+                  <tr>
+                    <td>{{ m }}</td>
+                    <td class="text-end">{{ row.adet }}</td>
+                    <td class="text-end">{{ '%.2f'|format(row.tutar) }} ₺</td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+            {% else %}
+              <tr><td colspan="3" class="muted" style="padding:12px;">Ödeme yok</td></tr>
+            {% endif %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" class="text-end">Tahsilat Toplamı</th>
+              {% if total_paid is defined %}
+                {% set tahsil = total_paid %}
+              {% else %}
+                {% if payments and looks_grouped %}
+                  {% set tahsil = payments|map(attribute='tutar')|sum %}
+                {% elif payments %}
+                  {% set tahsil = payments|map(attribute='amount')|sum %}
+                {% else %}
+                  {% set tahsil = 0 %}
+                {% endif %}
+              {% endif %}
+              <th class="text-end">{{ '%.2f'|format(tahsil or 0) }} ₺</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="gs-body" style="border-top:1px solid var(--border,#e5e7eb);display:flex;justify-content:space-between;gap:10px">
+        <span class="muted">Adisyon #{{ order.id }}</span>
+        <span class="badge badge-soft">Read-only</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

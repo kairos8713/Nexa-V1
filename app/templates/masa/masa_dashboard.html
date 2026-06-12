@@ -1,0 +1,480 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}{{ masa.name }} · Panel{% endblock %}
+
+{% block styles %}
+<style>
+  /* 2 kolon düzen */
+  .nx-two {
+    display:grid; gap:16px;
+    grid-template-columns:1fr;
+  }
+  @media (min-width: 900px){
+    .nx-two { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Kart iskeleti */
+  .nx-card {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+    overflow: hidden;
+    margin: 12px;
+  }
+  .nx-inner-header {
+    padding: 14px 16px;
+    background: var(--surface-2, #fafafa);
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-weight:700;
+  }
+  .nx-inner { padding: 16px; }
+
+  /* Sipariş satırları */
+  .nx-row {
+    display:flex; gap:10px; align-items:center;
+    padding:10px 0; border-bottom:1px dashed var(--border, #e5e7eb);
+  }
+  .nx-row:last-child { border-bottom:none; }
+  .nx-row .nx-meta { display:flex; align-items:center; justify-content:space-between; width:100%; gap:10px; }
+
+  /* Rozetler */
+  .nx-badge { font-size:.75rem; padding:4px 8px; border-radius:999px; white-space:nowrap; border:1px solid #e5e7eb; }
+  .nx-badge-warn { background: #fff7ed; color:#9a3412; border-color:#fed7aa; }
+  .nx-badge-ok   { background: rgba(14,165,163,.12); color:#065f5b; border-color: rgba(14,165,163,.35); }
+
+  /* Butonlar (tema uyumlu) */
+  .nx-btn { appearance:none; border:none; border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .nx-btn-teal   { background: var(--brand-primary, #0EA5A3); color:#fff; }
+  .nx-btn-teal:hover { background:#0a7f7e; color:#fff; }
+  .nx-btn-outline { background:transparent; border:1px solid var(--border, #e5e7eb); color:var(--text, #111827); }
+  .nx-btn-outline:hover { background:#f3f4f6; }
+  .nx-btn-danger { background:#dc2626; color:#fff; }
+  .nx-btn-danger:hover { background:#b91c1c; }
+  .nx-btn-success { background:#16a34a; color:#fff; }
+  .nx-btn-success:hover { background:#15803d; }
+  .nx-btn-secondary { background:#6b7280; color:#fff; }
+  .nx-btn-secondary:hover { background:#4b5563; }
+
+  .nx-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* Form alanları */
+  .nx-input { width:100%; min-width:220px; padding:8px 10px; border:1px solid var(--border, #e5e7eb); border-radius:10px; background:var(--surface, #fff); color:var(--text, #111827); }
+
+  /* Başlık */
+  .nx-page-title { margin:0 0 14px 12px; font-weight:800; }
+
+  /* Ayırıcı */
+  .nx-sep { border:none; border-top:1px solid var(--border, #e5e7eb); margin:14px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Güvenli rol #}
+{% set role = (current_user.role or '')|lower %}
+
+{# Güvenli ürün grupları (include'lar için garanti) #}
+{% set gruplu_urunler = gruplu_urunler or {} %}
+
+<h2 class="nx-page-title">{{ masa.name }} · Panel</h2>
+
+<div class="nx-two">
+
+  <!-- SOL: SİPARİŞLER -->
+  <div class="nx-card">
+    <div class="nx-inner-header">
+      <div>🧾 Aktif Siparişler</div>
+      {% if aktif_siparis %}<small class="text-muted">Sipariş #{{ aktif_siparis.id }}</small>{% endif %}
+    </div>
+
+    <div class="nx-inner">
+      {% if aktif_siparis %}
+        <form method="POST" action="{{ url_for('masa.urun_iptal', masa_id=masa.id) }}">
+          <div style="max-height:420px; overflow:auto;">
+            {% for item in aktif_siparis.items if item.status not in ['iptal edildi','ödendi'] %}
+              <div class="nx-row">
+                <input type="checkbox" name="selected_items" value="{{ item.id }}" style="margin:0;">
+                <div class="nx-meta">
+                  <div>
+                    <strong>{{ item.quantity }}× {{ item.product.name }}</strong>
+{% set anlik = left_item_display_totals.get(item.id) %}
+{% set mins  = left_item_elapsed_mins.get(item.id) %}
+
+{% if item.product and item.product.is_timed and item.timed_started_at and not item.timed_ended_at %}
+  <small class="text-muted">
+    — ⏱ {{ mins or 0 }} dk · ₺ {{ '%.2f'|format(anlik or 0) }}
+      <button type="button"
+              class="nx-btn nx-btn-outline"
+              style="padding:2px 8px; font-size:.75rem; line-height:1.2; margin-left:8px;"
+              onclick="bitirItem({{ masa.id }}, {{ item.id }}, this)">
+        ⏹ Bitir
+      </button>
+  </small>
+{% elif item.product and item.product.is_timed %}
+  <small class="text-muted">
+    — ⏱ {{ mins or 0 }} dk · ₺ {{ '%.2f'|format(anlik or 0) }}
+  </small>
+{% else %}
+  <small class="text-muted">
+    — ₺ {{ '%.2f'|format(item.product.price or 0) }}
+  </small>
+{% endif %}
+
+{# ✅ Garson & eklenme zamanı (created_at boşsa '-') #}
+{% set meta = left_item_meta.get(item.id) if left_item_meta is defined else None %}
+<div class="text-muted" style="font-size:.8rem; margin-top:2px;">
+  Garson: {{ meta.waiter if meta and meta.waiter else '-' }}
+  &nbsp;•&nbsp;
+  Eklenen:
+  {% if meta and meta.created_at %}
+    {{ meta.created_at.strftime('%d.%m.%Y %H:%M') }}
+  {% else %}
+    -
+  {% endif %}
+</div>
+                  </div>
+                  <div class="nx-actions">
+                    <span class="nx-badge nx-badge-warn">{{ item.status }}</span>
+                    <button class="nx-btn nx-btn-outline"
+                            name="cancel_one" value="{{ item.id }}"
+                            onclick="return confirm('Bu ürünü iptal etmek istediğinize emin misiniz?')">
+                      İptal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Toplu iptal -->
+          <div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:8px; user-select:none; cursor:pointer;">
+              <input type="checkbox" id="selectAll">
+              <span>Tümünü seç</span>
+            </label>
+
+            <input class="nx-input" type="text" name="cancel_reason" placeholder="İptal sebebi (opsiyonel)">
+            <button type="submit" class="nx-btn nx-btn-danger"
+                    name="cancel_selected" value="1"
+                    onclick="return confirm('Seçili ürünleri iptal etmek istediğinize emin misiniz?')">
+              Seçilenleri İptal Et
+            </button>
+          </div>
+        </form>
+
+        <hr class="nx-sep">
+
+        <div class="nx-actions" style="justify-content:flex-end;">
+          <button
+            id="btnPrintAdisyon"
+            class="nx-btn nx-btn-teal"
+            title="Adisyonu 'adisyon' adlı termal yazıcıya gönder"
+            onclick="printAdisyon({{ masa.id }}, this)">
+            🖨️ Adisyon Yazdır
+          </button>
+        </div>
+
+
+        {# --- Adisyon Böl / Masa Değiştir / Adisyon Birleştir --- #}
+        {% set is_ops_allowed = role in ['admin', 'cashier','cashier-lite','waiter'] %}
+        {% if is_ops_allowed %}
+          <hr class="nx-sep">
+          <form id="adisyonOpsForm" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+            <select class="nx-input" name="target_table_id" id="target_table_id" required>
+              <option value="" disabled selected>Hedef masa seçin</option>
+              {% for t in tum_masalar %}
+                {% if t.id != masa.id %}
+                  <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+
+            <div class="nx-actions">
+              <button type="button" class="nx-btn nx-btn-outline" onclick="submitAdisyonBol()">
+                Adisyon Böl (Seçilenleri Taşı)
+              </button>
+
+              <button type="button" class="nx-btn nx-btn-teal" onclick="submitMasaDegistir()">
+                Masa Değiştir (Tüm Ürünler)
+              </button>
+
+              <button type="button" class="nx-btn nx-btn-success" onclick="submitAdisyonBirlestir()">
+                Adisyon Birleştir (Seçilenleri Taşı)
+              </button>
+            </div>
+          </form>
+        {% endif %}
+      {% else %}
+        <p class="text-muted" style="margin:6px 0 0 0;">Aktif sipariş yok.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- SAĞ: PANEL -->
+  <div class="nx-card">
+    {% if role == 'waiter' %}
+      <div class="nx-inner-header">
+        <div>➕ Sipariş</div>
+        <div class="nx-actions">
+          <a class="nx-btn nx-btn-secondary" href="{{ url_for('masa.masa_listesi') }}">Geri</a>
+        </div>
+      </div>
+      <div class="nx-inner">
+        {% include "masa/panel_siparis_ekle.html" %}
+      </div>
+
+    {% else %}
+      {% if panel == 'odeme' %}
+        <div class="nx-inner-header">
+          <div>💳 Ödeme</div>
+          <div class="nx-actions">
+            <a class="nx-btn nx-btn-teal" href="{{ url_for('masa.masa_dashboard', masa_id=masa.id, panel='siparis') }}">➕ Sipariş</a>
+            <a class="nx-btn nx-btn-secondary" href="{{ url_for('masa.masa_listesi') }}">Geri</a>
+          </div>
+        </div>
+        <div class="nx-inner">
+          {% include "masa/panel_odeme_al.html" %}
+        </div>
+      {% else %}
+        <div class="nx-inner-header">
+          <div>➕ Sipariş</div>
+          <div class="nx-actions">
+            <a class="nx-btn nx-btn-success" href="{{ url_for('masa.masa_dashboard', masa_id=masa.id, panel='odeme') }}">💳 Ödeme</a>
+            <a class="nx-btn nx-btn-secondary" href="{{ url_for('masa.masa_listesi') }}">Geri</a>
+          </div>
+        </div>
+        <div class="nx-inner">
+          {% include "masa/panel_siparis_ekle.html" %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}{{ super() }}
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/qz-tray.js') }}"></script>
+<script src="{{ url_for('static', filename='js/qz-app.js') }}"></script>
+
+<script>
+function setBusy(btn, busy, okText){
+  if (!btn) return;
+  btn.disabled = !!busy;
+  btn.classList.toggle('nx-btn-secondary', !!busy);
+  btn.classList.toggle('nx-btn-teal', !busy);
+  if (busy) { btn.textContent = '⏳ Yazdırılıyor…'; return; }
+  if (okText){
+    const old = btn.dataset._oldlabel || btn.textContent;
+    btn.dataset._oldlabel = old;
+    btn.textContent = okText;
+    setTimeout(()=> btn.textContent = btn.dataset._oldlabel || '🖨️ Adisyon Yazdır', 1200);
+  }else{
+    btn.textContent = btn.dataset._oldlabel || '🖨️ Adisyon Yazdır';
+  }
+}
+(function(){
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll){
+    selectAll.addEventListener('change', function(){
+      document.querySelectorAll('input[name="selected_items"]').forEach(cb => cb.checked = selectAll.checked);
+    });
+  }
+  function getSelectedItemIds(){
+    return Array.from(document.querySelectorAll('input[name="selected_items"]:checked'))
+      .map(x => Number(x.value));
+  }
+  function getTargetTableId(){
+    const el = document.getElementById('target_table_id');
+    return el ? Number(el.value) : 0;
+  }
+  function ensureTarget(){
+    const t = getTargetTableId();
+    if(!t){ alert('Hedef masayı seçin.'); return 0; }
+    return t;
+  }
+  async function postJSON(url, payload){
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+    if(!r.ok){
+      const txt = await r.text();
+      throw new Error(txt || ('HTTP ' + r.status));
+    }
+    try { return await r.json(); } catch { return { ok:true }; }
+  }
+  window.submitAdisyonBol = async function(){
+    const target = ensureTarget(); if(!target) return;
+    const ids = getSelectedItemIds();
+    if(ids.length === 0){ alert('Bölmek için ürün seçin.'); return; }
+    if(!confirm('Seçilen ürünleri hedef masaya taşımak istediğinize emin misiniz?')) return;
+    try{
+      await postJSON('{{ url_for("masa.adisyon_bol", masa_id=masa.id) }}', {
+        target_table_id: target,
+        item_ids: ids
+      });
+      location.reload();
+    }catch(e){ alert('Hata: '+ e.message); }
+  };
+  window.submitMasaDegistir = async function(){
+    const target = ensureTarget(); if(!target) return;
+    if(!confirm('Bu masadaki TÜM ürünleri hedef masaya taşımak istiyor musunuz?')) return;
+    try{
+      await postJSON('{{ url_for("masa.masa_degistir", masa_id=masa.id) }}', {
+        target_table_id: target
+      });
+      const baseDashUrl = '{{ url_for("masa.masa_dashboard", masa_id=masa.id) }}';
+      const targetUrl = baseDashUrl.replace(/\/\d+$/, '/' + String(target)) + '?panel={{ panel or "siparis" }}';
+      window.location.href = targetUrl;
+    }catch(e){ alert('Hata: '+ e.message); }
+  };
+  window.submitAdisyonBirlestir = async function(){
+    const target = ensureTarget(); if(!target) return;
+    const ids = getSelectedItemIds();
+    if(ids.length === 0){ alert('Birleştirmek için ürün seçin.'); return; }
+    if(!confirm('Seçilen ürünleri hedef masanın aktif adisyonuna taşımak istiyor musunuz?')) return;
+    try{
+      await postJSON('{{ url_for("masa.adisyon_birlestir", masa_id=masa.id) }}', {
+        target_table_id: target,
+        item_ids: ids
+      });
+      location.reload();
+    }catch(e){ alert('Hata: '+ e.message); }
+  };
+})();
+(function(){
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll){
+    selectAll.addEventListener('change', () => {
+      document.querySelectorAll('input[name="selected_items"]').forEach(cb => cb.checked = selectAll.checked);
+    });
+  }
+  function getSelectedItemIds(){
+    return Array.from(document.querySelectorAll('input[name="selected_items"]:checked')).map(x => Number(x.value));
+  }
+  function getTargetTableId(){
+    const el = document.getElementById('target_table_id'); return el ? Number(el.value) : 0;
+  }
+  function ensureTarget(){ const t = getTargetTableId(); if(!t){ alert('Hedef masayı seçin.'); return 0; } return t; }
+  async function postJSON(url, payload){
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body:JSON.stringify(payload)});
+    if(!r.ok){ throw new Error((await r.text()) || ('HTTP ' + r.status)); }
+    try { return await r.json(); } catch { return { ok:true }; }
+  }
+  window.submitAdisyonBol = async function(){
+    const target = ensureTarget(); if(!target) return;
+    const ids = getSelectedItemIds(); if(ids.length===0){ alert('Bölmek için ürün seçin.'); return; }
+    if(!confirm('Seçilen ürünleri hedef masaya taşımak istediğinize emin misiniz?')) return;
+    try{ await postJSON('{{ url_for("masa.adisyon_bol", masa_id=masa.id) }}', { target_table_id: target, item_ids: ids }); location.reload(); }
+    catch(e){ alert('Hata: '+e.message); }
+  };
+  window.submitMasaDegistir = async function(){
+    const target = ensureTarget(); if(!target) return;
+    if(!confirm('Bu masadaki TÜM ürünleri hedef masaya taşımak istiyor musunuz?')) return;
+    try{
+      await postJSON('{{ url_for("masa.masa_degistir", masa_id=masa.id) }}', { target_table_id: target });
+      const baseDashUrl='{{ url_for("masa.masa_dashboard", masa_id=masa.id) }}';
+      const targetUrl = baseDashUrl.replace(/\/\d+$/, '/' + String(target)) + '?panel={{ panel or "siparis" }}';
+      window.location.href = targetUrl;
+    }catch(e){ alert('Hata: '+e.message); }
+  };
+  window.submitAdisyonBirlestir = async function(){
+    const target = ensureTarget(); if(!target) return;
+    const ids = getSelectedItemIds(); if(ids.length===0){ alert('Birleştirmek için ürün seçin.'); return; }
+    if(!confirm('Seçilen ürünleri hedef masanın aktif adisyonuna taşımak istiyor musunuz?')) return;
+    try{ await postJSON('{{ url_for("masa.adisyon_birlestir", masa_id=masa.id) }}', { target_table_id: target, item_ids: ids }); location.reload(); }
+    catch(e){ alert('Hata: '+e.message); }
+  };
+})();
+</script>
+
+<script>
+(function(){
+  const JOBS = {{ (auto_print_jobs or [])|tojson|safe }};
+  if (!Array.isArray(JOBS) || JOBS.length === 0) return;
+  async function ensureQz(){
+    if (typeof window.qzEnsure === 'function') {
+      await window.qzEnsure();
+      return;
+    }
+    if (window.qz?.websocket && !window.qz.websocket.isActive()){
+      await window.qz.websocket.connect();
+    }
+  }
+  async function printHtmlJob(job){
+    const printer = job?.printer || 'adisyon';
+    const jobName = `Sipariş Fişi · ${job?.meta?.table_name || ''} · #${job?.meta?.order_id || ''}`;
+    const cfg = window.qz.configs.create(printer, { copies: 1, jobName });
+    const data = [{ type: 'html', format: 'plain', data: String(job?.data || '') }];
+    await window.qz.print(cfg, data);
+  }
+  (async () => {
+    try{
+      await ensureQz();
+      for (const j of JOBS){
+        if ((j?.type || '') === 'html') {
+          await printHtmlJob(j);
+        }
+      }
+    }catch(e){
+      console.error('[auto-print] QZ hata:', e);
+    }
+  })();
+})();
+</script>
+
+<script>
+async function printAdisyon(masaId, btn){
+  try{
+    setBusy(btn, true);
+    const r = await fetch(`/masa/${masaId}/adisyon-yazdir`, { credentials: 'same-origin' });
+    const j = await r.json();
+    if(!r.ok || !j.ok){
+      throw new Error(j?.error || `Adisyon hazırlanamadı (HTTP ${r.status})`);
+    }
+    if (typeof window.qzEnsure === 'function') {
+      await window.qzEnsure();
+    } else if (window.qz?.websocket && !window.qz.websocket.isActive()) {
+      await window.qz.websocket.connect();
+    }
+    const printerName = j.printer || 'adisyon';
+    const jobName     = `Adisyon · Masa ${j.table} · #${j.order_id}`;
+    if (typeof window.qzPrintRawHex === 'function') {
+      await window.qzPrintRawHex(printerName, j.data, jobName);
+    } else {
+      const cfg  = window.qz.configs.create(printerName, { copies: 1, jobName });
+      const data = [{ type: j.type || 'raw', format: j.format || 'hex', data: j.data }];
+      await window.qz.print(cfg, data);
+    }
+    setBusy(btn, false, '✓ Gönderildi');
+  } catch (e){
+    console.error('[printAdisyon] hata:', e);
+    alert('Yazdırma hatası: ' + (e?.message || e));
+    setBusy(btn, false);
+  }
+}
+async function bitirItem(masaId, itemId, btn){
+  if(!confirm('Bu saatlik ürünü şimdi dondurmak istiyor musunuz? Ödeme alınmayacak.')) return;
+  try{
+    btn && (btn.disabled = true);
+    const r = await fetch(`/masa/${masaId}/bitir/${itemId}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'fetch' }
+    });
+    if(!r.ok){
+      const t = await r.text().catch(()=> '');
+      throw new Error(t || ('HTTP ' + r.status));
+    }
+    location.reload();
+  }catch(e){
+    alert('Bitirme hatası: ' + e.message);
+    btn && (btn.disabled = false);
+  }
+}
+</script>
+{% endblock %}

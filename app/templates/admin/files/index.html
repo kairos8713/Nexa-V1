@@ -1,0 +1,282 @@
+{# templates/admin/files/index.html #}
+<!doctype html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <title>Dosya Yöneticisi</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root{
+      --brand:#0EA5A3; --brand-600:#0C8E8C; --accent:#C46C36;
+      --bg:#F7FAFC; --surface:#FFFFFF; --surface-2:#F3F6F8; --text:#0F172A; --muted:#64748B; --border:#E5E7EB;
+      --radius:12px; --shadow:0 8px 24px rgba(2,6,23,.06);
+    }
+    [data-theme="dark"]{
+      --bg:#0B1215; --surface:#0F1A1C; --surface-2:#0B1416; --text:#E5F2F2; --muted:#98A2B3; --border:#1F2A2E;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{padding:16px;max-width:1200px;margin:0 auto}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+    .row{display:grid;gap:12px}
+    .row.cols-2{grid-template-columns:1fr}
+    @media(min-width:900px){.row.cols-2{grid-template-columns:2fr 1fr}}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+    .toolbar .spacer{flex:1}
+    .btn{height:36px;border:1px solid var(--border);background:var(--surface-2);padding:0 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .btn.primary:hover{background:var(--brand-600)}
+    .btn.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    input[type="text"],input[type="file"],select{height:36px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:0 10px}
+    .crumbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;font-size:14px}
+    .crumbs .seg{display:flex;gap:6px;align-items:center}
+    .crumbs .chip{background:var(--surface-2);border:1px solid var(--border);padding:3px 8px;border-radius:999px}
+    .list{width:100%;border-collapse:collapse}
+    .list th,.list td{border-bottom:1px solid var(--border);padding:10px 8px;text-align:left}
+    .list th{font-size:13px;color:var(--muted)}
+    .name{display:flex;align-items:center;gap:10px}
+    .icon{width:18px;height:18px;display:inline-block}
+    .folder{border-radius:3px;background:linear-gradient(180deg,#cfe9e9,#8fd6d4)}
+    .file{border-radius:3px;background:linear-gradient(180deg,#e8e8e8,#cfcfcf)}
+    .sticky-actions{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:10px;display:flex;gap:8px;justify-content:flex-end}
+    .muted{color:var(--muted);font-size:12px}
+    .searchbar{display:flex;gap:8px;align-items:center}
+    .grid-2{display:grid;gap:12px}
+    .grid-2 > .card{padding:12px}
+    .danger-text{color:#b91c1c}
+    .success{color:#0f766e}
+    .nowrap{white-space:nowrap}
+    .ellipsis{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hint{font-size:12px;color:var(--muted)}
+    .rowlink{cursor:pointer}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <div><strong>Hoşgeldin:</strong> {{ current_user }}</div>
+    <div class="spacer"></div>
+    <form method="get" action="{{ url_for('files_admin.index') }}" class="searchbar">
+      <input type="hidden" name="p" value="{{ cur_rel }}">
+      <input type="text" id="q" placeholder="Listede filtrele..." oninput="filterRows(this.value)">
+    </form>
+  </div>
+
+  <div class="crumbs">
+    <div class="seg">
+      <a class="chip" href="{{ url_for('files_admin.index') }}">/</a>
+      {% if cur_rel %}
+        {% set parts = cur_rel.split('/') %}
+        {% set path_so_far = [] %}
+        {% for part in parts %}
+          {% set _ = path_so_far.append(part) %}
+          <span>›</span>
+          <a class="chip" href="{{ url_for('files_admin.index', p='/'.join(path_so_far)) }}">{{ part }}</a>
+        {% endfor %}
+      {% endif %}
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <div class="row cols-2">
+    <div class="card">
+      <form id="bulkForm" method="post" action="{{ url_for('files_admin.delete') }}">
+        <input type="hidden" name="cur" value="{{ cur_rel }}">
+        <table class="list" id="fileTable">
+          <thead>
+            <tr>
+              <th style="width:32px"><input type="checkbox" onclick="toggleAll(this)"></th>
+              <th>Ad</th>
+              <th class="nowrap">Boyut</th>
+              <th class="nowrap">Değiştirildi</th>
+              <th class="nowrap">İndir</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% if parent_rel != "" %}
+            <tr data-name="..">
+              <td></td>
+              <td class="name">
+                <span class="icon folder"></span>
+                <a href="{{ url_for('files_admin.index', p=parent_rel) }}">..</a>
+              </td>
+              <td class="muted">-</td>
+              <td class="muted">-</td>
+              <td></td>
+            </tr>
+          {% endif %}
+
+          {% for it in items %}
+            <tr class="rowlink" data-name="{{ it.name|e }}" data-rel="{{ it.path_rel }}">
+              <td><input type="checkbox" name="items" value="{{ it.path_rel }}" onclick="event.stopPropagation()"></td>
+              <td class="name ellipsis" onclick="goItem('{{ it.path_rel }}', {{ 'true' if it.is_dir else 'false' }})">
+                <span class="icon {{ 'folder' if it.is_dir else 'file' }}"></span>
+                {% if it.is_dir %}
+                  <a title="{{ it.name }}" href="{{ url_for('files_admin.index', p=it.path_rel) }}">{{ it.name }}</a>
+                {% else %}
+                  <a title="{{ it.name }}" href="{{ url_for('files_admin.view_file', p=it.path_rel) }}">{{ it.name }}</a>
+                {% endif %}
+              </td>
+              <td class="nowrap" data-size="{{ it.size }}">{{ it.size }}</td>
+              <td class="nowrap" data-mtime="{{ it.mtime }}">{{ it.mtime }}</td>
+              <td class="nowrap">
+                <a class="btn" href="{{ url_for('files_admin.download', p=it.path_rel) }}" onclick="event.stopPropagation()">İndir</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="sticky-actions">
+          <button type="submit" class="btn danger" onclick="return confirmDelete()">Seçilileri Sil</button>
+          <a class="btn" href="{{ url_for('files_admin.download', p=cur_rel) }}">Klasörü ZIP İndir</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Yeni Oluştur</h4>
+        <form method="post" action="{{ url_for('files_admin.new_entry') }}" style="display:grid;gap:8px">
+          <input type="hidden" name="cur" value="{{ cur_rel }}">
+          <input type="text" name="name" placeholder="isim.ext veya klasor_adi" required>
+          <select name="kind">
+            <option value="file">Dosya</option>
+            <option value="dir">Klasör</option>
+          </select>
+          <button class="btn primary" type="submit">Oluştur</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 8px 8px 0; display:flex;align-items:center;gap:8px">Yükle <span class="hint">(dosya)</span></h4>
+        <form id="fileUploadForm" method="post" action="{{ url_for('files_admin.upload') }}" enctype="multipart/form-data" style="display:grid;gap:8px">
+          <input type="hidden" name="cur" value="{{ cur_rel }}">
+          <input type="file" name="files" multiple required>
+          <label class="hint" style="display:flex;gap:8px;align-items:center">
+            <input type="checkbox" name="overwrite"> Üzerine yaz (mevcut dosyaları değiştir)
+          </label>
+          <button class="btn primary" type="submit">Yükle</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 8px 8px 0; display:flex;align-items:center;gap:8px">Klasör Yükle <span class="hint">(alt klasörlerle)</span></h4>
+        <form id="dirUploadForm" onsubmit="return uploadDirectory(event)" style="display:grid;gap:8px">
+          <input type="hidden" name="cur" value="{{ cur_rel }}">
+          <input id="dirPicker" type="file" webkitdirectory multiple>
+          <label class="hint" style="display:flex;gap:8px;align-items:center">
+            <input id="dirOverwrite" type="checkbox"> Üzerine yaz (mevcut dosyaları değiştir)
+          </label>
+          <button class="btn primary" type="submit">Klasörü Yükle</button>
+          <div class="hint">Not: Tarayıcı destekliyorsa klasör seçersin; her dosya için göreli yol otomatik gönderilir.</div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Yeniden Adlandır</h4>
+        <form id="renameForm" method="post" action="{{ url_for('files_admin.rename') }}" style="display:grid;gap:8px">
+          <input type="text" name="p" id="renamePath" placeholder="göreli yol (ör: app/routes/foo.py)" required>
+          <input type="text" name="new_name" placeholder="yeni_ad.ext" required>
+          <button class="btn" type="submit">Uygula</button>
+          <p class="muted">İpucu: Listeden bir satıra tıklayınca yol buraya otomatik düşer.</p>
+        </form>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Bilgi</h4>
+        <div class="muted">
+          <div><strong>Kök:</strong> {{ root }}</div>
+          <div><strong>Konum:</strong> /{{ cur_rel }}</div>
+          <div>Dosyalar üzerinde tam yetkin var.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleAll(cb){
+  document.querySelectorAll('input[name="items"]').forEach(x=> x.checked = cb.checked);
+}
+function confirmDelete(){
+  const any = Array.from(document.querySelectorAll('input[name="items"]')).some(x=>x.checked);
+  if(!any){ alert("Silmek için en az bir öğe seç."); return false; }
+  return confirm("Seçili öğeler silinecek. Emin misin?");
+}
+function humanBytes(bytes){
+  bytes = Number(bytes||0);
+  if(bytes < 1024) return bytes + " B";
+  const units = ["KB","MB","GB","TB"];
+  let u=-1; do{ bytes/=1024; u++ } while(bytes>=1024 && u<units.length-1);
+  return bytes.toFixed(bytes<10?2:bytes<100?1:0)+" "+units[u];
+}
+function formatTime(sec){
+  if(!sec) return "-";
+  const d = new Date(sec*1000);
+  return d.toLocaleString();
+}
+function filterRows(q){
+  q = (q||"").toLowerCase();
+  document.querySelectorAll("#fileTable tbody tr").forEach(tr=>{
+    const name = (tr.getAttribute("data-name")||"").toLowerCase();
+    tr.style.display = name.includes(q) ? "" : "none";
+  });
+}
+(function initFormat(){
+  document.querySelectorAll('[data-size]').forEach(td=>{
+    td.textContent = humanBytes(td.getAttribute('data-size'));
+  });
+  document.querySelectorAll('[data-mtime]').forEach(td=>{
+    td.textContent = formatTime(td.getAttribute('data-mtime'));
+  });
+  // satıra tıklayınca rename formunu doldur
+  document.querySelectorAll('#fileTable tbody tr.rowlink').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if (e.target.closest('a') || e.target.closest('input[type=checkbox]')) return;
+      const rel = tr.getAttribute('data-rel');
+      const input = document.getElementById('renamePath');
+      if (rel && input){ input.value = rel; input.focus(); }
+    });
+  });
+})();
+function goItem(rel, isDir){
+  if(isDir){
+    window.location = "{{ url_for('files_admin.index') }}?p=" + encodeURIComponent(rel);
+  }else{
+    window.location = "{{ url_for('files_admin.view_file') }}?p=" + encodeURIComponent(rel);
+  }
+}
+// Klasör yükleme (webkitdirectory)
+async function uploadDirectory(ev){
+  ev.preventDefault();
+  const input = document.getElementById('dirPicker');
+  if(!input.files || input.files.length === 0){
+    alert('Bir klasör seç.');
+    return false;
+  }
+  const cur = "{{ cur_rel }}";
+  const overwrite = document.getElementById('dirOverwrite').checked ? '1' : '';
+  const fd = new FormData();
+  fd.append('cur', cur);
+  if (overwrite) fd.append('overwrite', '1');
+  for(const file of input.files){
+    fd.append('files', file, file.name);
+    // bazı tarayıcılarda boş dönebilir; o zaman file.name kullanılır
+    const rel = (file.webkitRelativePath || file.name);
+    fd.append('relpaths', rel);
+  }
+  const resp = await fetch("{{ url_for('files_admin.upload') }}", { method: "POST", body: fd });
+  // Backend redirect HTML döndürür; sayfayı yenile
+  if(resp.ok){
+    window.location = "{{ url_for('files_admin.index', p=cur_rel) }}";
+  }else{
+    alert("Yükleme başarısız (HTTP " + resp.status + ").");
+  }
+  return false;
+}
+</script>
+</body>
+</html>

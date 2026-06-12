@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Menü Kategorileri</title>
+  <style>
+    :root{ --olivine:#7a8737; --deep:#1c2d22; --gold:#90774f; --sand:#c6b68c; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:#f7f5ef; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1200px 800px at 82% -10%, rgba(198,182,140,.30), transparent) no-repeat,
+        radial-gradient(1000px 700px at -20% 120%, rgba(122,135,55,.12), transparent) no-repeat,
+        linear-gradient(180deg, #141d18 0%, var(--deep) 55%, #0f1713 100%) no-repeat;
+      background-attachment: fixed,fixed,fixed; background-size: cover,cover,cover;
+    }
+
+    header{padding:18px 20px; display:flex; justify-content:center}
+    .brand{
+      display:flex; gap:12px; align-items:center; padding:10px 14px;
+      background:rgba(28,45,34,.55); border:1px solid rgba(198,182,140,.35);
+      border-radius:14px; box-shadow:0 8px 22px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .brand .logo{width:60px;height:60px;border-radius:10px;overflow:hidden;display:grid;place-items:center}
+    .brand .logo img{width:100%;height:100%;object-fit:cover}
+    .brand .name{font-weight:800; letter-spacing:.35px; color:var(--sand)}
+
+    .wrap{max-width:1100px; width:100%; padding:22px; margin:0 auto}
+    h1{font-weight:800; letter-spacing:.4px; margin:14px 0 18px; text-align:center; color:var(--sand)}
+
+    .grid{display:grid; gap:16px; grid-template-columns: repeat(6, 1fr);}
+    @media (max-width:1100px){ .grid{grid-template-columns: repeat(3, 1fr);} }
+    @media (max-width:640px){ .grid{grid-template-columns: repeat(2, 1fr);} }
+    @media (max-width:420px){ .grid{grid-template-columns: 1fr;} }
+
+    .card{
+      position:relative; border-radius:18px; overflow:hidden; isolation:isolate;
+      border:1px solid rgba(198,182,140,.35);
+      box-shadow:0 10px 26px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+      background:#0f1713;
+      min-height:130px;
+    }
+    .card:hover{transform:translateY(-3px); filter:saturate(1.05); box-shadow:0 16px 34px rgba(0,0,0,.4)}
+
+    /* Kapak görseli opsiyonel; yoksa boş döner ve sadece koyu arkaplan görünür */
+    .card .cover{position:absolute; inset:0; background-position:center; background-size:cover; z-index:0; filter:saturate(1.03) contrast(1.03)}
+    .card::before{content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.0) 35%, rgba(0,0,0,.45) 100%); z-index:1}
+    .card::after{content:""; position:absolute; inset:auto 0 0 0; height:3px; z-index:2; background:linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.8}
+
+    .btn{position:relative; z-index:3; display:flex; align-items:flex-end; justify-content:center; min-height:130px; padding:18px; text-decoration:none; color:#fff; text-align:center}
+    .btn span{
+      display:inline-block; font-weight:800; letter-spacing:.35px; padding:.5rem .8rem;
+      background:rgba(28,45,34,.55); border:1px solid rgba(198,182,140,.35); border-radius:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+      backdrop-filter: blur(3px);
+    }
+
+    nav.top{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:10px 0 4px}
+    nav.top a{color:#fff; text-decoration:none; padding:.45rem .8rem; border-radius:12px; border:1px solid rgba(198,182,140,.3); background:rgba(255,255,255,.04)}
+    nav.top a:hover{background:rgba(198,182,140,.18)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand" aria-label="Veloya">
+      <div class="logo"><img src="{{ url_for('static', filename='img/veloya.png') }}" alt="Veloya" /></div>
+      <div class="name">Veloya • QR Menü</div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="top" aria-label="Kısa yollar">
+      <a href="/">Ana Sayfa</a>
+      <a href="{{ url_for('qrmenu.menu_home') }}">Menü</a>
+    </nav>
+
+    <h1>Menü Kategorileri</h1>
+
+    <section class="grid" aria-label="Kategoriler">
+      {% for c in categories %}
+        <div class="card">
+          <div class="cover" style="background-image:url('{{ c.cover|default('') }}')"></div>
+          <a class="btn" href="{{ url_for('qrmenu.menu_category', category_slug=c.slug) }}"><span>{{ c.name }}</span></a>
+        </div>
+      {% endfor %}
+    </section>
+  </div>
+</body>
+</html>

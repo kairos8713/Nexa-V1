@@ -1,0 +1,112 @@
+{% extends "base_public.html" %}
+{% block title %}QR Menü - Kategori Seçimi{% endblock %}
+{% block content %}
+<style>
+:root{
+  --leaf:#7a8737; --forest:#1c2d22; --gold:#90774f; --sand:#c6b68c; --ink:#141414; --paper:#faf9f6;
+}
+body{background:
+  radial-gradient(1200px 800px at 82% -10%, rgba(198,182,140,.28), transparent) no-repeat,
+  radial-gradient(1000px 700px at -20% 120%, rgba(122,135,55,.12), transparent) no-repeat,
+  linear-gradient(180deg, #141d18 0%, var(--forest) 55%, #0f1713 100%) no-repeat;
+  background-attachment: fixed,fixed,fixed; background-size: cover,cover,cover;
+  color:#f7f5ef;
+}
+.menu-wrap{max-width:1100px;margin:0 auto;padding:18px 16px 28px;}
+.brand{display:flex;align-items:center;gap:12px;margin:12px 0 12px 0;}
+.brand .logo{
+  width:56px;height:56px;border-radius:14px;overflow:hidden;display:grid;place-items:center;
+  background: radial-gradient(120% 120% at 20% 20%, var(--leaf) 0%, var(--forest) 100%);
+  box-shadow: 0 6px 18px rgba(0,0,0,.28), inset 0 0 0 2px rgba(255,255,255,.12);
+}
+.brand .logo img{width:100%;height:100%;object-fit:cover}
+.brand h1{margin:0;font-size:1.35rem;color:var(--sand);letter-spacing:.4px}
+.brand .tag{color:var(--sand);opacity:.85;font-size:.9rem}
+
+.grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;}
+@media (min-width:720px){.grid{grid-template-columns:repeat(3,1fr)}}
+.cat{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(198,182,140,.35);
+  border-radius:16px; padding:12px; display:flex;flex-direction:column; gap:10px;
+  box-shadow:0 10px 26px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  min-height:148px;
+}
+.cat:hover{transform:translateY(-2px); box-shadow:0 14px 30px rgba(0,0,0,.35); filter:saturate(1.04)}
+.cat .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cat .name{font-weight:800;color:var(--sand);letter-spacing:.25px; font-size:1.02rem}
+.cat .count{font-weight:700; font-size:.78rem; color:#fff; background:linear-gradient(180deg,var(--gold),#7b6040);
+  padding:.28rem .55rem; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.preview{margin:2px 2px 6px 2px; padding:0; list-style:none; color:#efeade; font-size:.9rem}
+.preview li{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:.25rem 0; border-bottom:1px dashed rgba(255,255,255,.08)}
+.preview li:last-child{border-bottom:none}
+.preview .pname{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:72%}
+.preview .pprice{font-weight:700; color:var(--sand); opacity:.95}
+
+.cat .go{
+  align-self:flex-end; margin-top:auto; text-decoration:none; color:#fff; font-weight:700; letter-spacing:.25px;
+  padding:.5rem .8rem; border-radius:12px;
+  border:1px solid rgba(198,182,140,.35); background:rgba(28,45,34,.55);
+  box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.note{margin:8px 2px 14px; color:#e8e2d4; font-size:.92rem}
+</style>
+
+<div class="menu-wrap">
+  <div class="brand">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='img/veloya.png') }}" alt="Veloya" />
+    </div>
+    <div>
+      <h1>Veloya — QR Menü</h1>
+      <div class="tag">Yarı minimalist • lüks dokunuş • yaprak yeşil</div>
+    </div>
+  </div>
+
+  <p class="note"><strong>İpucu:</strong> Nargile QR’si yanlış basılsa bile <code>/menu</code> ve <code>/menu/nargile</code> aynı kategori ekranını açar.</p>
+
+  <div class="grid">
+    {% for c in categories %}
+      {% set plist = c.preview | default([], true) %}
+      {% set href_menu = url_for('menu.menu_category', category_slug=c.slug) if 'menu' in current_app.view_functions else None %}
+      {% set href_qr   = url_for('qrmenu.menu_category', category_slug=c.slug) if 'qrmenu.menu_category' in current_app.view_functions else None %}
+      {% set href      = c.href | default(href_menu or href_qr) %}
+
+      <div class="cat">
+        <div class="top">
+          <span class="name">{{ c.name }}</span>
+          <span class="count">{{ c.count | default(0) }} ürün</span>
+        </div>
+
+        {% if plist | length > 0 %}
+          <ul class="preview">
+            {% for it in plist %}
+              <li>
+                <span class="pname">{{ it.name }}</span>
+                <span class="pprice">{{ "%.2f"|format(it.price|float) }} ₺</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <ul class="preview">
+            <li><span class="pname">Bu kategoride ürün bulunamadı.</span></li>
+          </ul>
+        {% endif %}
+
+        <a class="go" href="{{ href }}">Tümünü Gör</a>
+      </div>
+    {% endfor %}
+
+    {% if not categories|selectattr("slug","equalto","nargile")|list %}
+      <div class="cat">
+        <div class="top">
+          <span class="name">Nargile</span><span class="count">—</span>
+        </div>
+        <ul class="preview"><li><span class="pname">Tüm kategorileri görmek için dokunun.</span></li></ul>
+        <a class="go" href="{{ url_for('menu.menu_home') }}">Tümünü Gör</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

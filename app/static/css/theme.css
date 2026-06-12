@@ -1,0 +1,105 @@
+/* reset ve temel */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+:root {
+  --brand-primary: #0EA5A3;
+  --brand-primary-600: #0C8E8C;
+  --brand-accent: #C46C36;
+
+  --bg: #F7FAFC;
+  --surface: #FFFFFF;
+  --text: #0F172A;
+  --muted: #6B7280;
+  --border: #E5E7EB;
+
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(2, 24, 28, 0.08);
+  --topbar-h: 64px;
+}
+
+[data-theme="dark"] {
+  --bg: #0B1215;
+  --surface: #0F1A1C;
+  --text: #E5F2F2;
+  --muted: #96A3A3;
+  --border: #1F2A2E;
+  --shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+
+/* sayfa bg */
+body { background: var(--bg); color: var(--text); }
+
+/* ===== Topbar (pure CSS) ===== */
+.nx-topbar {
+  position: sticky; top: 0; z-index: 1000;
+  width: 100%;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-600));
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+.nx-wrap {
+  height: var(--topbar-h);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* marka | nav | kullanıcı */
+  align-items: center;
+  gap: 12px;
+}
+
+/* Marka */
+.nx-brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  color: #fff; text-decoration: none; font-weight: 700; letter-spacing: .2px;
+}
+.nx-brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand-accent); }
+
+/* Nav */
+.nx-nav { display: flex; justify-content: center; gap: 8px; }
+.nx-link {
+  text-decoration: none; color: #fff;
+  padding: .42rem .9rem; border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.18);
+  font-weight: 500;
+  transition: background .2s, transform .05s;
+}
+.nx-link:hover { background: rgba(255,255,255,.18); }
+.nx-link:active { transform: translateY(1px); }
+.nx-link.is-active { background: rgba(255,255,255,.28); }
+
+/* Sağ taraf (kullanıcı) */
+.nx-user { display: inline-flex; align-items: center; gap: 10px; }
+.nx-username { color: #fff; font-weight: 600; white-space: nowrap; }
+.nx-mode {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.nx-mode:hover { background: rgba(255,255,255,.15); }
+
+/* Burger (mobil) */
+.nx-burger { display: none; background: transparent; border: 0; cursor: pointer; }
+.nx-burger span { display:block; width:20px; height:2px; background:#fff; margin:4px 0; border-radius:2px; }
+
+/* İçerik top offset (sticky bar’a çarpmaması için) */
+.nx-offset { padding-top: 24px; }
+@media (max-width: 992px){
+  .nx-wrap { grid-template-columns: auto auto auto; }
+  .nx-burger { display: inline-block; }
+  .nx-nav {
+    position: absolute; top: var(--topbar-h); left: 0; right: 0;
+    background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-600));
+    padding: 10px 12px; display: none; flex-wrap: wrap; justify-content: center; gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,.2);
+  }
+  .nx-nav.open { display: flex; }
+  .nx-offset { padding-top: 20px; } /* mobilde biraz daha az boşluk */
+}
+
+/* tablolar/formlar/kartlar (kısaltılmış) */
+.table td, .table th { vertical-align: middle; height: 52px; }
+.form-control, .form-select { border-radius: 10px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }

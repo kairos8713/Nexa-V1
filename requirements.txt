@@ -1,0 +1,14 @@
+alembic
+click
+cryptography
+eventlet
+Flask
+Flask-Login
+Flask-Migrate
+Flask-SocketIO
+Flask-SQLAlchemy
+pytz
+requests
+SQLAlchemy
+Unidecode
+Werkzeug

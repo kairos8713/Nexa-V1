@@ -1,0 +1,91 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Garson Şifre Güncelle · Yönetim Paneli{% endblock %}
+
+{% block styles %}
+<style>
+  .nx-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 12px 14px 12px}
+  .nx-head h2{margin:0;font-weight:800;display:flex;align-items:center;gap:8px}
+
+  .nx-btn{
+    height:36px;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;
+    border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  }
+  .nx-btn.primary{background:var(--brand-primary,#0EA5A3);color:#fff}
+  .nx-btn.primary:hover{filter:brightness(.95)}
+  .nx-btn.outline{background:transparent;border:1px solid var(--border,#e5e7eb);color:var(--text,#111827)}
+  .nx-btn.outline:hover{background:#f3f4f6}
+
+  .nx-card{
+    background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);
+    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden;
+    margin:0 12px 12px 12px;
+  }
+  .nx-card-hdr{
+    padding:14px 16px;background:var(--surface-2,#fafafa);
+    border-bottom:1px solid var(--border,#e5e7eb);font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px
+  }
+  .nx-card-body{padding:16px;display:flex;flex-direction:column;gap:14px}
+
+  .nx-label{font-weight:600;margin-bottom:4px;display:block}
+  .nx-input{
+    width:100%;height:38px;border:1px solid var(--border,#e5e7eb);border-radius:10px;
+    padding:0 12px;background:#fff;outline:none;
+  }
+  .nx-input:focus{border-color:var(--brand-primary,#0EA5A3);box-shadow:0 0 0 3px rgba(14,165,163,.18)}
+
+  .nx-status{
+    display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border-radius:999px;
+    font-weight:700;font-size:.85rem;border:1px solid;
+  }
+  .nx-status.on  { background:rgba(34,197,94,.12); color:#166534; border-color:rgba(34,197,94,.35) }
+  .nx-status.off { background:rgba(239,68,68,.12); color:#7f1d1d; border-color:rgba(239,68,68,.35) }
+
+  .nx-flash{margin:0 12px 12px 12px}
+  .nx-alert{padding:10px 12px;border-radius:10px;border:1px solid var(--border,#e5e7eb);background:#fff}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-head">
+  <h2>🔑 Şifre Güncelle — <span style="font-weight:900">{{ waiter.username }}</span></h2>
+  <a href="{{ url_for('waiter.waiter_list') }}" class="nx-btn outline">⬅ Geri</a>
+</div>
+
+{# Flash mesajlar #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="nx-flash">
+      {% for category, message in messages %}
+        <div class="nx-alert">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="nx-card">
+  <div class="nx-card-hdr">
+    <div>Garson Bilgisi</div>
+    <div>
+      {% if waiter.mesai_aktif %}
+        <span class="nx-status on">🟢 Aktif Mesai</span>
+      {% else %}
+        <span class="nx-status off">🔴 Pasif Mesai</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="nx-card-body">
+    <form method="POST" autocomplete="off">
+      <div>
+        <label class="nx-label">Yeni Şifre</label>
+        <input type="password" name="password" class="nx-input" required>
+      </div>
+
+      <div style="margin-top:6px;display:flex;gap:8px">
+        <button type="submit" class="nx-btn primary">💾 Güncelle</button>
+        <a href="{{ url_for('waiter.waiter_list') }}" class="nx-btn outline">Vazgeç</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

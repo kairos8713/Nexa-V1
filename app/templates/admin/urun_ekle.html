@@ -1,0 +1,160 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Yeni Ürün Ekle · Yönetim Paneli{% endblock %}
+
+{% block styles %}
+<style>
+  .nx-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 12px 14px 12px}
+  .nx-head h2{margin:0;font-weight:800;display:flex;align-items:center;gap:8px}
+
+  .nx-card{
+    background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);
+    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden;
+    margin:0 12px 12px 12px;
+  }
+  .nx-card-hdr{
+    padding:14px 16px;background:var(--surface-2,#fafafa);
+    border-bottom:1px solid var(--border,#e5e7eb);font-weight:700;
+  }
+  .nx-card-body{padding:16px;display:flex;flex-direction:column;gap:14px}
+
+  .nx-label{font-weight:600;margin-bottom:4px;display:block}
+  .nx-input, .nx-select{
+    width:100%;height:38px;border:1px solid var(--border,#e5e7eb);border-radius:10px;
+    padding:0 12px;background:#fff;outline:none;
+  }
+  .nx-input:focus, .nx-select:focus{
+    border-color:var(--brand-primary,#0EA5A3);box-shadow:0 0 0 3px rgba(14,165,163,.18);
+  }
+
+  .nx-btn{
+    height:38px;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer;
+    border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  }
+  .nx-btn.success{background:#16a34a;color:#fff}
+  .nx-btn.success:hover{background:#15803d}
+
+  .nx-alert{padding:10px 14px;border-radius:10px;margin-bottom:10px;font-weight:600}
+  .nx-alert.success{background:rgba(34,197,94,.12);color:#166534;border:1px solid rgba(34,197,94,.35)}
+  .nx-alert.error{background:rgba(239,68,68,.12);color:#7f1d1d;border:1px solid rgba(239,68,68,.35)}
+  .nx-alert.info{background:rgba(59,130,246,.12);color:#1e3a8a;border:1px solid rgba(59,130,246,.35)}
+
+  .nx-switch{display:flex;align-items:center;gap:10px}
+  .nx-switch input[type="checkbox"]{transform:scale(1.2)}
+  .timed-wrap{display:none}
+  .timed-wrap.show{display:block}
+  .nx-hint{font-size:.875rem;color:var(--muted,#64748B)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-head">
+  <h2>➕ Yeni Ürün Ekle</h2>
+</div>
+
+<div class="nx-card">
+  <div class="nx-card-hdr">Ürün Bilgileri</div>
+  <div class="nx-card-body">
+
+    {# Flash mesajları #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="nx-alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="d-flex flex-column gap-3">
+      <div>
+        <label class="nx-label">Ürün Adı</label>
+        <input type="text" name="name" class="nx-input" required>
+      </div>
+
+      <div>
+        <label class="nx-label">Fiyat</label>
+        <input type="number" step="0.01" name="price" class="nx-input" required>
+      </div>
+
+      <div>
+        <label class="nx-label">Kategori</label>
+        <input type="text" name="category" class="nx-input">
+      </div>
+
+      <div>
+        <label class="nx-label">Alt Kategori (sub_category)</label>
+        <input type="text" name="sub_category" class="nx-input">
+      </div>
+
+      <div>
+        <label class="nx-label">Stok</label>
+        <input type="number" name="stock" class="nx-input">
+      </div>
+
+      {# ---- Panel Görünürlüğü (DB'den gelen datalist + serbest yazma) ---- #}
+      <div>
+        <label class="nx-label">Panel Görünürlüğü</label>
+        <input
+          type="text"
+          name="visible_for"
+          class="nx-input"
+          list="panelList"
+          placeholder="bar, mutfak, nargile, oyun, meşrubat... veya yeni panel ismi yaz"
+        >
+        <datalist id="panelList">
+          {# backend: panels = ['bar','mutfak','nargile', ...] #}
+          {% if panels %}
+            {% for p in panels %}
+              {% if p %}<option value="{{ p|e }}"></option>{% endif %}
+            {% endfor %}
+          {% endif %}
+        </datalist>
+        <div class="nx-hint">Mevcut bir paneli seçebilir veya yeni bir isim yazarak ekleyebilirsin.</div>
+      </div>
+
+      {# ---- Saatlik Ürün Seçeneği ---- #}
+      <div class="nx-switch">
+        <input id="is_timed" type="checkbox" name="is_timed">
+        <label for="is_timed" class="nx-label" style="margin:0;">Saatlik ürün</label>
+      </div>
+
+      <div id="timedFields" class="timed-wrap">
+        <div>
+          <label class="nx-label">Saatlik Ücret (TL/saat)</label>
+          <input type="number" step="0.01" name="hourly_rate" class="nx-input" placeholder="örn. 250">
+        </div>
+
+        <div>
+          <label class="nx-label">Açılışta Tahsil Edilecek Dakika</label>
+          <input type="number" name="initial_minutes" class="nx-input" placeholder="örn. 30 (boş bırakılabilir)">
+          <div class="nx-hint">İlk eklenen dakika tutarı tek kalem olarak yazılır ve fiyat adımıyla yuvarlanır.</div>
+        </div>
+
+        <div>
+          <label class="nx-label">Fiyat Yuvarlama Adımı (TL)</label>
+          <input type="number" step="0.01" name="price_round_inc" class="nx-input" placeholder="örn. 5 veya 10 (boş bırakılabilir)">
+          <div class="nx-hint">Toplam tutar bu adımın katına YUKARI yuvarlanır (223 → 225 gibi).</div>
+        </div>
+
+        <div class="nx-switch">
+          <input id="auto_start_on_add" type="checkbox" name="auto_start_on_add">
+          <label for="auto_start_on_add" class="nx-label" style="margin:0;">Ekle-nir eklenmez süre başlasın</label>
+        </div>
+      </div>
+
+      <div style="margin-top:6px;">
+        <button type="submit" class="nx-btn success">💾 Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const cb = document.getElementById('is_timed');
+    const box = document.getElementById('timedFields');
+    const toggle = ()=> box.classList.toggle('show', !!cb.checked);
+    cb.addEventListener('change', toggle);
+    toggle(); // sayfa ilk yüklenişte
+  })();
+</script>
+{% endblock %}

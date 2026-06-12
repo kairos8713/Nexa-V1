@@ -1,0 +1,110 @@
+/* ========== Nexa Components ========== */
+
+/* KPI Cards */
+.kpi-card .label { color: var(--muted); font-size: .875rem; }
+.kpi-card .value { font-size: 1.75rem; font-weight: 700; letter-spacing: .2px; }
+
+/* Section headers */
+.section-title {
+  display:flex; align-items:center; gap:.5rem;
+  font-weight:700; font-size:1.05rem;
+}
+.section-title .chip {
+  font-size:.75rem; padding:.2rem .5rem; border-radius:.5rem;
+  background:#f1f3f5; color:#495057; border:1px solid #e9ecef;
+}
+[data-theme="dark"] .section-title .chip {
+  background:#122126; color:#9bb0b0; border-color:#1f2a2e;
+}
+
+/* Soft panels (accordion-like) */
+.soft-panel {
+  border:1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.soft-panel .soft-head {
+  padding:.75rem 1rem; display:flex; align-items:center; gap:.5rem;
+  border-bottom:1px solid var(--border); cursor:pointer;
+}
+.soft-panel .soft-body { padding: .75rem 1rem; }
+
+/* Product card */
+.product-card {
+  border:1px solid #eef1f4;
+  border-radius:.6rem;
+  padding:.6rem .65rem;
+  background:var(--surface);
+  transition: box-shadow .15s ease;
+}
+.product-card:hover { box-shadow: 0 8px 18px rgba(0,0,0,.06); }
+.product-card .prod-top { display:flex; justify-content:space-between; gap:.75rem; }
+.product-card .prod-name { font-weight:600; }
+.product-card .price {
+  font-size:.9rem; background:#f5f7fb; border:1px solid #e6ebf2; border-radius:.35rem; padding:.15rem .45rem;
+}
+[data-theme="dark"] .product-card .price {
+  background:#112029; border-color:#1f2a2e;
+}
+
+/* Sticky actions */
+.sticky-actions {
+  position:sticky; bottom:0; background:var(--surface);
+  border-top:1px solid var(--border); padding:.75rem 1rem;
+  display:flex; gap:.5rem; justify-content:flex-end;
+}
+
+/* Subnav strip (optional) */
+.subnav {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Empty states */
+.empty {
+  text-align:center; color:var(--muted); padding:2rem 1rem;
+}
+.empty .icon { font-size:2rem; opacity:.8; }
+.empty .action { margin-top: .75rem; }
+
+/* Badges semantic shortcuts */
+.badge-warn { background: var(--warning); color:#000; }
+.badge-ok { background: var(--success); }
+.badge-info { background: var(--info); color:#000; }
+
+/* Minimal animations */
+.fade-in { animation: fadein .2s ease; }
+@keyframes fadein { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none} }
+
+/* Print-friendly tweaks */
+@media print {
+  .navbar, .subnav, .sticky-actions, .btn, .alert { display:none !important; }
+  .card { box-shadow:none; }
+  body { background:#fff; color:#000; }
+}
+
+
+/* ---- Çıkış butonu (topbar) ---- */
+.nx-user .nx-logout,
+.nx-user .nx-logout:link,
+.nx-user .nx-logout:visited{
+  display:inline-flex; align-items:center; gap:8px;
+  text-decoration:none;
+  padding:6px 10px; border-radius:8px;
+  color: var(--brand-accent, #C46C36);           /* bakır */
+  border: 3px solid rgba(196,108,54,.35);
+  background: transparent;
+  line-height:1;
+  transition: background .2s, color .2s, border-color .2s, transform .1s;
+  margin-left: 4px;                               /* username ile aralık */
+}
+.nx-user .nx-logout:hover{
+  background: rgba(196,108,54,.12);
+  color: #a3471e;
+  border-color: rgba(196,108,54,.55);
+  transform: translateY(-1px);
+}
+.nx-user .nx-logout svg{
+  width:18px; height:18px; stroke: currentColor; display:block;
+}

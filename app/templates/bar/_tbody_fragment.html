@@ -1,0 +1,33 @@
+<tbody id="barItemsBody">
+  {% for item in items %}
+  <tr data-row
+      data-table="{{ (item.order.table.name if item.order and item.order.table else 'masa')|lower }}"
+      data-name="{{ item.product.name|lower }}"
+      data-note="{{ (item.note or '')|lower }}"
+      data-id="{{ item.id }}">
+    <td class="fw-semibold">
+      {{ item.order.table.name if item.order and item.order.table else 'Masa' }}
+    </td>
+    <td class="fw-semibold">{{ item.product.name }}</td>
+    <td class="text-muted">{{ item.note or '' }}</td>
+    <td>
+      {% if item.status == "hazırlanıyor" %}
+        <span class="badge bg-warning text-dark">hazırlanıyor</span>
+      {% elif item.status == "hazır" %}
+        <span class="badge bg-success">hazır</span>
+      {% else %}
+        <span class="badge bg-secondary">{{ item.status }}</span>
+      {% endif %}
+    </td>
+    <td>
+      {% if item.status == "hazırlanıyor" %}
+      <form class="inline-update" method="POST" action="{{ url_for('bar.bar_durum_guncelle', item_id=item.id) }}">
+        <button class="btn btn-sm btn-success">✔ Hazır</button>
+      </form>
+      {% else %}
+        ✅
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>

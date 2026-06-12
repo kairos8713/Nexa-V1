@@ -1,0 +1,79 @@
+<div class="card shadow-sm border-0 rounded-3">
+  <div class="card-header bg-light rounded-top-3">
+    <div class="nx-inner-header">
+      <span class="nx-chip nx-chip-muted">🧾 Gün Sonu — Mini</span>
+      <a class="btn btn-sm btn-outline-teal" href="{{ url_for('gun_sonu.gun_sonu') }}">Tam Rapor</a>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    {% if gunsonu %}
+      {% set g = gunsonu %}
+
+      <!-- Tarih aralığı -->
+      <div class="d-flex justify-content-center mb-4">
+        <span class="nx-chip">
+          {{ g.start.strftime('%d.%m %H:%M') }} → {{ g.end.strftime('%d.%m %H:%M') }}
+        </span>
+      </div>
+
+      <!-- KPI Kartları -->
+      <div class="row g-2">
+        <div class="col-6">
+          <div class="mini-stat-card">
+            <div class="msc-label">Ciro</div>
+            <div class="msc-value">₺ {{ '%.2f'|format(g.total_revenue or 0) }}</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="mini-stat-card">
+            <div class="msc-label">İşlem</div>
+            <div class="msc-value">{{ g.tx_count or 0 }}</div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="text-muted text-center py-3">
+        Henüz gün sonu raporu yok.
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<style>
+  .btn-outline-teal{
+    border:1px solid var(--brand-primary,#0EA5A3);
+    color:var(--brand-primary,#0EA5A3);
+    border-radius:8px;
+  }
+  .btn-outline-teal:hover{ background:var(--brand-primary,#0EA5A3); color:#fff; }
+
+  .nx-inner-header{
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    padding:12px 6px;
+  }
+  .nx-chip{
+    display:inline-flex; align-items:center; gap:8px; padding:.4rem .8rem;
+    border-radius:999px; font-weight:600;
+    background:rgba(14,165,163,.10); border:1px solid rgba(14,165,163,.28);
+    color:#065f5b; white-space:nowrap; margin:6px;
+  }
+  .nx-chip-muted{ background:#f8fafc; border-color:#e5e7eb; color:#374151; }
+
+  .mini-stat-card{
+    border:1px solid var(--border,#e5e7eb);
+    background:var(--surface,#fff);
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.06);
+    display:flex; flex-direction:column; gap:8px;
+    padding:14px;
+    margin:6px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .mini-stat-card:hover{ transform:translateY(-2px); box-shadow:0 12px 28px rgba(0,0,0,.09); }
+
+  .msc-label{ font-size:.9rem; color:var(--muted,#6b7280); font-weight:500; }
+  .msc-value{ font-size:1.2rem; font-weight:700; color:var(--text,#111827); }
+</style>

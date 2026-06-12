@@ -1,0 +1,172 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}QZ Tray Test{% endblock %}
+
+{% block content %}
+<div class="nx-container" style="max-width:920px;margin:auto;">
+  <h2 class="nx-title">🖨️ QZ Tray Test</h2>
+
+  <!-- Bağlantı kartı -->
+  <div class="nx-card" style="margin-top:12px;">
+    <div class="nx-card-hdr">Bağlantı</div>
+    <div class="nx-card-body">
+      <div style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+        <div class="grp">
+          <label>QZ Host (IP veya hostname)</label>
+          <input id="qzHost" class="nx-input" placeholder="örn: 192.168.1.50">
+        </div>
+        <div class="grp">
+          <label>Durum</label>
+          <div id="status" class="nx-badge muted">Bağlı değil</div>
+        </div>
+        <div class="grp" style="display:flex; gap:8px;">
+          <button id="btnConnect" class="nx-btn">Bağlan</button>
+          <button id="btnDisconnect" class="nx-btn nx-btn-outline">Kes</button>
+          <button id="btnSaveHost" class="nx-btn nx-btn-outline">Host’u Kaydet</button>
+        </div>
+      </div>
+      <p class="text-muted" style="margin-top:8px;">
+        Not: Aynı makinede test ediyorsan host boş kalabilir (localhost). Ağdaki başka bir PC’de QZ çalışıyorsa o PC’nin LAN IP’sini gir.
+      </p>
+    </div>
+  </div>
+
+  <!-- Yazıcı seçimi -->
+  <div class="nx-card" style="margin-top:12px;">
+    <div class="nx-card-hdr">Yazıcı Seçimi</div>
+    <div class="nx-card-body">
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <select id="printerSelect" class="nx-input" style="min-width:280px;">
+          <option value="">-- Yazıcılar listelenecek --</option>
+        </select>
+        <button id="btnListPrinters" class="nx-btn">Yazıcıları Yenile</button>
+        <button id="btnSavePrinter" class="nx-btn nx-btn-outline">Varsayılanı Kaydet</button>
+      </div>
+      <p class="text-muted" style="margin-top:6px;">
+        Varsayılan yazıcı <code>localStorage.qz_printer</code> olarak saklanır.
+      </p>
+    </div>
+  </div>
+
+  <!-- Hızlı test -->
+  <div class="nx-card" style="margin-top:12px;">
+    <div class="nx-card-hdr">Hızlı Test</div>
+    <div class="nx-card-body">
+      <div class="nx-actions">
+        <button id="btnPrintRaw" class="nx-btn nx-btn-teal">Test Fişi Bas (ESC/POS RAW)</button>
+      </div>
+      <p class="text-muted" style="margin-top:6px;">
+        PDF göstermez; yazıcıya ham ESC/POS komutları gönderir ve kısmi kesim yapar (GS V 65 3).
+      </p>
+      <details style="margin-top:8px;">
+        <summary>Günlük / Log</summary>
+        <pre id="log" style="white-space:pre-wrap; background:var(--surface-2,#f5f5f5); padding:10px; border-radius:8px; border:1px solid var(--border,#e5e7eb); max-height:260px; overflow:auto;"></pre>
+      </details>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js"></script>
+<script>
+/* ---- basit log yardımcıları ---- */
+const $ = (id) => document.getElementById(id);
+function log(m){ const el=$('log'); if(el){ el.textContent += m + "\n"; el.scrollTop = el.scrollHeight; } console.log(m); }
+
+/* ---- güvenlik: sertifika + imza (docs kalıbı) ---- */
+qz.security.setCertificatePromise(function(resolve, reject) {
+  fetch("/qz/cert", { credentials: "same-origin" })
+    .then(r => r.text())
+    .then(pem => { log("🔒 cert alındı"); resolve(pem); })
+    .catch(err => { log("❌ cert hata: " + (err?.message||err)); reject(err); });
+});
+
+qz.security.setSignaturePromise(function(toSign) {
+  return function(resolve, reject) {
+    fetch("/qz/sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ call: toSign })
+    })
+    .then(async (r) => {
+      // doküman metin dönmeyi önerir; biz her iki durumu da stringleştiriyoruz
+      const ct = r.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const j = await r.json();
+        const s = j.signature ?? j.sig ?? j.data ?? j ?? "";
+        resolve(String(s));
+      } else {
+        const t = await r.text();
+        resolve(String((t||"").trim()));
+      }
+    })
+    .catch(err => { log("❌ sign hata: " + (err?.message||err)); reject(err); });
+  };
+});
+
+/* ---- bağlan (dokümana uygun, host/port vermeden) ---- */
+function connectQZ(){
+  if (qz.websocket.isActive()) { log("✅ zaten bağlı"); return Promise.resolve(); }
+  log("🔌 bağlanıyor…");
+  return qz.websocket.connect()
+    .then(() => qz.api.getVersion().then(v => log("ℹ️ QZ sürüm: " + v)))
+    .then(() => log("✅ QZ Tray bağlı"))
+    .catch((e) => { log("❌ bağlantı hatası: " + (e?.message||e)); throw e; });
+}
+function disconnectQZ(){
+  if (!qz.websocket.isActive()) { log("ℹ️ zaten kopuk"); return; }
+  qz.websocket.disconnect().then(() => log("🔌 bağlantı kesildi"));
+}
+
+/* ---- yazıcı listesi ---- */
+function listPrinters(){
+  connectQZ()
+    .then(() => qz.printers.find())
+    .then((printers) => {
+      const sel = $('printerSelect');
+      if (sel) {
+        sel.innerHTML = "";
+        (printers||[]).forEach(p => {
+          const o = document.createElement('option');
+          o.value = p; o.textContent = p;
+          sel.appendChild(o);
+        });
+      }
+      log(`🖨️ ${printers?.length||0} yazıcı`);
+    })
+    .catch(e => log("❌ printer list hata: " + (e?.message||e)));
+}
+
+/* ---- basit RAW test (ESC/POS) ---- */
+function buildTestHex(){
+  // init, center+bold, "HELLO QZ", normal+left, 2 LF, full cut
+  const HELLO = '48454c4c4f20515a0a';
+  return '1b40' + '1b6101' + '1b4501' + HELLO + '1b4500' + '1b6100' + '0a0a' + '1d564103';
+}
+function printTestRaw(){
+  connectQZ()
+    .then(() => {
+      const sel = $('printerSelect');
+      const name = sel?.value || null; // seçili yoksa QZ default’u kullanır
+      const cfg = qz.configs.create(name ? { name } : {});
+      const data = [{ type:'raw', format:'hex', data: buildTestHex() }];
+      return qz.print(cfg, data);
+    })
+    .then(() => log("🖨️ test fişi gönderildi"))
+    .catch(e => log("❌ print hata: " + (e?.message||e)));
+}
+
+/* ---- event binding ---- */
+$('btnConnect')     ?.addEventListener('click', connectQZ);
+$('btnListPrinters')?.addEventListener('click', listPrinters);
+$('btnPrintRaw')    ?.addEventListener('click', printTestRaw);
+
+/* ---- sayfa açıldığında, dokümana uygun otomatik deneme ---- */
+document.addEventListener('DOMContentLoaded', () => {
+  log("QZ test hazır (docs-style)");
+  // otomatik bağlanmayı istiyorsan yorumdan çıkar:
+  // connectQZ().then(listPrinters).catch(()=>{});
+});
+</script>
+{% endblock %}

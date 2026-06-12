@@ -1,0 +1,93 @@
+<div class="card nx-card nx-card--pad nx-card--gap">
+  <div class="nx-inner-header">
+    <div class="nx-ih-group">
+      <span class="nx-ih-title">👥 Garsonlar</span>
+    </div>
+    <div class="nx-ih-actions">
+      <a class="btn btn-sm btn-outline-teal" href="{{ url_for('waiter.waiter_list') }}">Yönet</a>
+    </div>
+  </div>
+
+  <div class="nx-card-body">
+    {% if waiters %}
+      <div class="wm-list">
+        {% for w in waiters %}
+          {% set wid = w.id %}
+          {% set st = waiter_stats.get(wid, {}) %}
+          {% set sales = st.get('sales', 0) %}
+          {% set tx = st.get('tx', 0) %}
+          {% set on_shift = st.get('on_shift', False) %}
+          <div class="wm-item">
+            <div class="wm-left">
+              <div class="wm-av">{{ (w.username or w.name or 'G')[:1] | upper }}</div>
+              <div class="wm-meta">
+                <div class="wm-name">{{ w.username or w.name or ('Garson #' ~ w.id) }}</div>
+                <div class="wm-sub">
+                  <span class="wm-badge {% if on_shift %}wm-badge--on{% else %}wm-badge--off{% endif %}">
+                    {% if on_shift %}Açık{% else %}Kapalı{% endif %}
+                  </span>
+                  <span class="wm-dot">•</span>
+                  <span class="wm-money">₺ {{ '%.2f'|format(sales or 0) }}</span>
+                  <span class="wm-sep">/</span>
+                  <span class="wm-tx">{{ tx }} işlem</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="wm-right">
+              <form method="POST" action="{{ url_for('dashboard.dashboard') }}">
+                {# CSRF kullanıyorsan şunu ekle: {{ csrf_token() }} #}
+                <input type="hidden" name="action" value="shift_toggle">
+                <input type="hidden" name="waiter_id" value="{{ wid }}">
+                {% if on_shift %}
+                  <button type="submit" class="nx-btn nx-btn--ghost-danger" title="Mesaiyi Bitir">Mesai Bitir</button>
+                {% else %}
+                  <button type="submit" class="nx-btn nx-btn--brand" title="Mesaiyi Başlat">Mesai Başlat</button>
+                {% endif %}
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-muted">Garson bulunamadı.</div>
+    {% endif %}
+  </div>
+</div>
+
+
+<style>
+.wm-list{display:flex;flex-direction:column;gap:10px;}
+.wm-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border:1px solid var(--border,#e5e7eb);border-radius:12px;
+  background:var(--surface,#fff);
+}
+.wm-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.wm-av{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--brand-primary,#0EA5A3);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;box-shadow:0 0 0 2px rgba(14,165,163,.15);
+}
+.wm-meta{min-width:0;}
+.wm-name{font-weight:600;color:var(--text,#111827);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+.wm-sub{font-size:.85rem;color:var(--muted,#6b7280);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.wm-badge{border-radius:999px;font-size:.75rem;padding:2px 8px;border:1px solid #e5e7eb;background:#f9fafb;color:#111827;}
+.wm-badge--on{background:rgba(14,165,163,.12);color:#065f5b;border-color:rgba(14,165,163,.35);}
+.wm-badge--off{background:#fff1f2;color:#9f1239;border-color:#fecdd3;}
+.wm-dot{opacity:.55}
+.wm-money{font-weight:600}
+.wm-sep{opacity:.5}
+.wm-right form{margin:0}
+.nx-btn{
+  border:none;border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer;transition:filter .15s ease;
+}
+.nx-btn:focus{outline:none;}
+.nx-btn:hover{filter:brightness(.98);}
+.nx-btn--brand{background:var(--brand-primary,#0EA5A3);color:#fff;}
+.nx-btn--ghost-danger{background:transparent;color:#b91c1c;border:1px solid #fecaca;}
+.nx-btn--ghost-danger:hover{background:#fef2f2;}
+@media (max-width: 480px){
+  .wm-name{max-width:140px;}
+}
+</style>

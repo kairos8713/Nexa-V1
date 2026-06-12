@@ -1,0 +1,505 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --cms-primary: #0EA5A3;
+        --cms-bg: #f8fafc;
+        --cms-surface: #ffffff;
+        --cms-border: #e2e8f0;
+        --cms-text: #1e293b;
+        --cms-muted: #64748b;
+        --cms-radius: 12px;
+        --cms-focus: rgba(14, 165, 163, 0.25);
+    }
+
+    [data-theme="dark"] {
+        --cms-bg: #0f172a;
+        --cms-surface: #1e293b;
+        --cms-border: #334155;
+        --cms-text: #f1f5f9;
+        --cms-muted: #94a3b8;
+    }
+
+    .cms-split-container {
+        font-family: 'Inter', sans-serif;
+        color: var(--cms-text);
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-bottom: 3rem;
+    }
+
+    /* List Card */
+    .cms-list-card {
+        background: var(--cms-surface);
+        border: 1px solid var(--cms-border);
+        border-radius: var(--cms-radius);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .cms-list-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--cms-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(248, 250, 252, 0.5);
+    }
+
+    .cms-list-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--cms-border);
+        transition: background 0.15s;
+    }
+
+    .cms-list-item:hover {
+        background: rgba(14, 165, 163, 0.02);
+    }
+
+    .cms-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .item-handle {
+        color: var(--cms-muted);
+        opacity: 0.5;
+        cursor: grab;
+        margin-right: 1rem;
+    }
+
+    .item-order {
+        background: var(--cms-bg);
+        border: 1px solid var(--cms-border);
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        margin-right: 1.5rem;
+        color: var(--cms-muted);
+        min-width: 32px;
+        text-align: center;
+    }
+
+    .item-image {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: var(--cms-bg);
+        border: 1px solid var(--cms-border);
+        margin-right: 1rem;
+        object-fit: cover;
+    }
+
+    .item-info {
+        flex-grow: 1;
+    }
+
+    .item-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .item-slug {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: var(--cms-muted);
+        background: rgba(0, 0, 0, 0.03);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-active {
+        background-color: #10b981;
+    }
+
+    .status-inactive {
+        background-color: #ef4444;
+    }
+
+    /* Floating Panel */
+    .cms-panel {
+        background: var(--cms-surface);
+        border: 1px solid var(--cms-border);
+        border-radius: var(--cms-radius);
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        position: sticky;
+        top: 80px;
+    }
+
+    .cms-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--cms-border);
+    }
+
+    .cms-panel-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--cms-text);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Form Elements */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--cms-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .form-control-custom {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid var(--cms-border);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        background: var(--cms-bg);
+    }
+
+    .form-control-custom:focus {
+        background: var(--cms-surface);
+        border-color: var(--cms-primary);
+        outline: none;
+        box-shadow: 0 0 0 3px var(--cms-focus);
+    }
+
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        border: 1px solid var(--cms-border);
+        background: transparent;
+        color: var(--cms-muted);
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .btn-action:hover {
+        border-color: var(--cms-primary);
+        color: var(--cms-primary);
+        background: rgba(14, 165, 163, 0.05);
+    }
+
+    .btn-primary-custom {
+        background: var(--cms-primary);
+        color: white;
+        border: none;
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-primary-custom:hover {
+        background: #0c8e8c;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(14, 165, 163, 0.2);
+    }
+
+    .btn-secondary-custom {
+        background: transparent;
+        color: var(--cms-muted);
+        border: 1px solid var(--cms-border);
+        width: 100%;
+        padding: 0.6rem;
+        border-radius: 8px;
+        font-weight: 500;
+        margin-top: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary-custom:hover {
+        background: var(--cms-bg);
+        color: var(--cms-text);
+    }
+
+    /* Toggle Switch */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--cms-border);
+        transition: .4s;
+        border-radius: 20px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked+.slider {
+        background-color: var(--cms-primary);
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(20px);
+    }
+</style>
+
+<div class="cms-split-container mt-4">
+    <div class="row g-4">
+        <!-- List Column -->
+        <div class="col-lg-7 mb-4">
+            <div class="cms-list-header mb-3 bg-transparent border-0 p-0">
+                <div>
+                    <h2 class="h4 fw-bold mb-1">Kategori Yönetimi</h2>
+                    <p class="small text-muted mb-0">Drag & Drop ile sıralamayı (yakında), butonlarla içeriği yönetin.
+                    </p>
+                </div>
+                <span class="badge bg-light text-dark border">{{ categories|length }} Kategori</span>
+            </div>
+
+            <div class="cms-list-card">
+                {% for cat in categories %}
+                <div class="cms-list-item">
+                    <div class="item-handle" title="Sıralamak için sürükleyin (Yakında)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="item-order" title="Sıra No">{{ cat.display_order }}</div>
+
+                    {% if cat.image_url %}
+                    <img src="{{ cat.image_url }}" class="item-image" alt="{{ cat.name }}">
+                    {% else %}
+                    <div class="item-image d-flex align-items-center justify-content-center text-muted">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </div>
+                    {% endif %}
+
+                    <div class="item-info">
+                        <div class="item-title">
+                            {{ cat.name }}
+                            {% if cat.is_visible %}
+                            <span class="status-dot status-active" title="Görünür"></span>
+                            {% else %}
+                            <span class="status-dot status-inactive" title="Gizli"></span>
+                            {% endif %}
+                        </div>
+                        <div class="item-slug">/{{ cat.slug }}</div>
+                    </div>
+
+                    <button class="btn-action edit-btn" data-id="{{ cat.id }}" data-name="{{ cat.name }}"
+                        data-slug="{{ cat.slug }}" data-order="{{ cat.display_order }}" data-image="{{ cat.image_url }}"
+                        data-visible="{{ '1' if cat.is_visible else '0' }}" title="Düzenle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                </div>
+                {% else %}
+                <div class="p-5 text-center text-muted">
+                    <p class="mb-0">Henüz kategori eklenmedi.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Form Column -->
+        <div class="col-lg-5">
+            <div class="cms-panel">
+                <div class="cms-panel-header">
+                    <h3 class="cms-panel-title" id="formTitle">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cms-primary)"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Yeni Kategori
+                    </h3>
+                </div>
+
+                <form action="{{ url_for('cms.category_update') }}" method="POST" enctype="multipart/form-data"
+                    id="catForm">
+                    <input type="hidden" name="id" id="catId">
+
+                    <div class="form-group">
+                        <label class="form-label">Kategori Adı</label>
+                        <input type="text" name="name" id="catName" class="form-control-custom" required
+                            placeholder="Örn: Tatlılar">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">URL (Slug)</label>
+                        <div class="d-flex align-items-center bg-light border rounded px-2">
+                            <span class="text-muted small me-1">/</span>
+                            <input type="text" name="slug" id="catSlug"
+                                class="form-control-custom border-0 bg-transparent ps-0" required
+                                placeholder="tatlilar">
+                        </div>
+                    </div>
+
+                    <div class="form-group d-flex justify-content-between align-items-center bg-light p-3 rounded">
+                        <label class="form-label mb-0" style="cursor:pointer;" for="visibleCheck">Menüde Göster</label>
+                        <label class="switch">
+                            <input type="checkbox" name="is_visible" id="visibleCheck" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="form-label">Sıralama</label>
+                                <input type="number" name="display_order" id="catOrder" class="form-control-custom"
+                                    value="0">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="form-label">Görsel</label>
+                                <input type="file" name="image" class="form-control-custom p-1"
+                                    style="font-size: 0.8rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="currentImage" class="mb-3 text-center d-none p-2 bg-light rounded border border-dashed">
+                    </div>
+
+                    <button type="submit" class="btn-primary-custom" id="saveBtnText">Kaydet</button>
+                    <button type="button" class="btn-secondary-custom" onclick="resetForm()">Temizle / İptal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const saveBtnText = document.getElementById('saveBtnText');
+    const formTitle = document.getElementById('formTitle');
+    const currentImageDiv = document.getElementById('currentImage');
+    const visibleCheck = document.getElementById('visibleCheck');
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const d = btn.dataset;
+            document.getElementById('catId').value = d.id;
+            document.getElementById('catName').value = d.name;
+            document.getElementById('catSlug').value = d.slug;
+            document.getElementById('catOrder').value = d.order;
+
+            // Checkbox logic
+            visibleCheck.checked = (d.visible === '1');
+
+            formTitle.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Düzenle: ${d.name}`;
+            saveBtnText.textContent = 'Güncelle';
+
+            if (d.image && d.image !== 'None' && d.image !== '') {
+                currentImageDiv.classList.remove('d-none');
+                currentImageDiv.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <img src="${d.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
+                        <span class="small text-muted">Mevcut görsel</span>
+                    </div>`;
+            } else {
+                currentImageDiv.innerHTML = '';
+                currentImageDiv.classList.add('d-none');
+            }
+
+            if (window.innerWidth < 992) {
+                document.getElementById('catForm').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+
+    document.getElementById('catName').addEventListener('input', function () {
+        if (!document.getElementById('catId').value) {
+            document.getElementById('catSlug').value = slugify(this.value);
+        }
+    });
+
+    function resetForm() {
+        document.getElementById('catId').value = '';
+        document.getElementById('catForm').reset();
+        document.getElementById('catOrder').value = '0';
+        visibleCheck.checked = true; // Default
+        currentImageDiv.innerHTML = '';
+        currentImageDiv.classList.add('d-none');
+
+        formTitle.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cms-primary)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Yeni Kategori`;
+        saveBtnText.textContent = 'Kaydet';
+    }
+
+    function slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\wüğıişöç\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '')
+            .replace(/ü/g, 'u').replace(/ğ/g, 'g').replace(/ı/g, 'i')
+            .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
+    }
+</script>
+{% endblock %}

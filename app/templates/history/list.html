@@ -1,0 +1,185 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Geçmiş Adisyonlar{% endblock %}
+
+{% block content %}
+
+<style>
+  /* SCOPE: Sadece bu sayfaya uygula */
+  #gecmis-history .pg-title{ margin:0 12px 12px; font-weight:800; letter-spacing:.1px; display:flex; align-items:center; gap:8px; }
+
+  #gecmis-history .nx-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(2,6,23,.06);
+    overflow:hidden;
+    margin:12px;
+  }
+  #gecmis-history .nx-inner{ padding:14px; }
+
+  #gecmis-history .nx-label{ font-size:.86rem; color:var(--text-muted, #64748B); font-weight:600; }
+  #gecmis-history .nx-input, 
+  #gecmis-history .nx-btn{
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    background:var(--surface);
+    color:var(--text);
+  }
+  #gecmis-history .nx-input:focus{
+    outline:none; border-color:var(--brand-primary);
+    box-shadow:0 0 0 3px color-mix(in oklab, var(--brand-primary) 30%, transparent);
+  }
+  #gecmis-history .nx-btn{ cursor:pointer; user-select:none; font-weight:600; }
+  #gecmis-history .nx-btn.primary{ background:var(--brand-primary); color:#fff; border-color:transparent; }
+  #gecmis-history .nx-btn.primary:hover{ background:var(--brand-primary-600, #0C8E8C); }
+
+  #gecmis-history .nx-form{
+    display:grid; gap:12px; align-items:end;
+    grid-template-columns:repeat(6, minmax(160px,1fr));
+  }
+  @media (max-width: 1080px){
+    #gecmis-history .nx-form{ grid-template-columns:repeat(3, minmax(160px,1fr)); }
+  }
+  @media (max-width: 640px){
+    #gecmis-history .nx-form{ grid-template-columns:1fr 1fr; }
+  }
+  #gecmis-history .nx-field{ display:flex; flex-direction:column; gap:6px; }
+  #gecmis-history .nx-form-footer{ display:flex; gap:8px; justify-content:flex-end; align-items:center; grid-column:1/-1; }
+  #gecmis-history .kicker{ font-size:.95rem; color:var(--text-muted, #64748B); }
+
+  #gecmis-history .table-wrap{ overflow:auto; }
+  #gecmis-history .nx-table{ width:100%; border-collapse:separate; border-spacing:0; font-size:.98rem; }
+  #gecmis-history .nx-table thead th{
+    position:sticky; top:0; z-index:1;
+    background:var(--surface-2);
+    color:var(--text-muted, #64748B);
+    text-align:left; font-weight:700;
+    padding:12px 14px; border-bottom:1px solid var(--border);
+  }
+  #gecmis-history .nx-table tbody td{ padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  #gecmis-history .nx-table tbody tr:hover{
+    background:color-mix(in oklab, var(--surface) 86%, var(--brand-primary) 14%);
+    transition:background .18s ease;
+  }
+
+  #gecmis-history .nx-link{ color:var(--brand-primary-600, #0C8E8C); text-decoration:none; font-weight:700; }
+  #gecmis-history .nx-link:hover{ text-decoration:underline; }
+  #gecmis-history .text-end{ text-align:right; }
+  #gecmis-history .mono{ font-variant-numeric:tabular-nums; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  #gecmis-history .empty{ padding:28px; text-align:center; color:var(--text-muted, #64748B); }
+
+  #gecmis-history .pager{
+    display:flex; gap:8px; justify-content:flex-end; padding:12px 14px;
+    border-top:1px solid var(--border); background:var(--surface-2);
+  }
+  #gecmis-history .pager .nx-btn{ padding:8px 12px; }
+  #gecmis-history .pager .nx-btn.outline{ background:transparent; border-color:var(--border); }
+</style>
+
+<section id="gecmis-history">
+  <h2 class="pg-title">📜 Geçmiş Adisyonlar</h2>
+
+  <div class="nx-card">
+    <div class="nx-inner">
+      <form method="get" class="nx-form" aria-label="Geçmiş adisyon filtreleri">
+        <div class="nx-field">
+          <label class="nx-label" for="d">Tarih</label>
+          <input id="d" type="date" class="nx-input" name="d" value="{{ d }}">
+        </div>
+
+        <div class="nx-field">
+          <label class="nx-label" for="cutoff">Cutoff</label>
+          <input id="cutoff" type="number" class="nx-input" name="cutoff" min="0" max="23" value="{{ cutoff or 5 }}" inputmode="numeric">
+        </div>
+
+        <div class="nx-field">
+          <label class="nx-label" for="table_id">Masa</label>
+          <select id="table_id" class="nx-input" name="table_id">
+            <option value="">Tümü</option>
+            {% for t in tables %}
+              <option value="{{ t.id }}" {{ 'selected' if table_id==t.id else '' }}>{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Kullanıcı filtresi: users varsa onu kullan, yoksa waiters'a düş #}
+        {% set user_list = users if users is defined and users else waiters %}
+        <div class="nx-field">
+          <label class="nx-label" for="waiter_id">Kullanıcı</label>
+          <select id="waiter_id" class="nx-input" name="waiter_id">
+            <option value="">Tümü</option>
+            {% for u in user_list %}
+              <option value="{{ u.id }}" {{ 'selected' if waiter_id==u.id else '' }}>
+                {{ u.username or u.full_name or ('User #' ~ u.id) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="nx-field">
+          <label class="nx-label" for="pm">Ödeme Metodu</label>
+          <select id="pm" class="nx-input" name="pm">
+            <option value="">Tümü</option>
+            {% for m in payment_methods %}
+              <option value="{{ m }}" {{ 'selected' if pm==m else '' }}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="nx-field">
+          <label class="nx-label" for="q">Ara</label>
+          <input id="q" class="nx-input" type="text" name="q" placeholder="Masa / kullanıcı" value="{{ q or '' }}">
+        </div>
+
+        <div class="nx-form-footer">
+          <div class="kicker">
+            Pencere (TR): {{ start.strftime('%d.%m.%Y %H:%M') }} – {{ end.strftime('%d.%m.%Y %H:%M') }}
+          </div>
+          <button class="nx-btn primary" type="submit">Listele</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="nx-card">
+    <div class="table-wrap">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th style="min-width:120px;">Adisyon</th>
+            <th style="min-width:140px;">Masa</th>
+            <th style="min-width:160px;">Kullanıcı</th>
+            <th style="min-width:180px;">Oluşturulma (TR)</th>
+            <th class="text-end" style="min-width:140px;">Tahsilat</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in items %}
+            <tr>
+              <td><a class="nx-link" href="{{ url_for('gecmis.gecmis_detail', order_id=r.id) }}">#{{ r.id }}</a></td>
+              <td>{{ r.masa }}</td>
+              <td>{{ r.garson or '-' }}</td>
+              <td class="mono">{{ r.created_tr.strftime('%d.%m.%Y %H:%M') if r.created_tr else '-' }}</td>
+              <td class="text-end mono">{{ '%.2f'|format(r.total_paid or 0) }} ₺</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5"><div class="empty">Kayıt yok</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% set pages = (total // per_page) + (1 if total % per_page else 0) %}
+    {% if pages > 1 %}
+      <div class="pager">
+        {% for p in range(1, pages+1) %}
+          <a class="nx-btn {{ 'primary' if p==page else 'outline' }}"
+             href="{{ url_for('gecmis.gecmis_list', d=d, cutoff=cutoff, table_id=table_id, waiter_id=waiter_id, pm=pm, q=q, page=p, per_page=per_page) }}">{{ p }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

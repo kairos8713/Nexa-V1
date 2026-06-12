@@ -1,0 +1,205 @@
+<h2>🍹 Bar Paneli</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="d-flex gap-2">
+    <span class="badge bg-secondary">Canlı</span>
+    <span id="liveStatus" class="text-muted small">bekleniyor…</span>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <input id="filterInput" type="text" class="form-control form-control-sm" placeholder="Ürün/Not ara" style="width:220px;">
+    <button id="enableSound" class="btn btn-sm btn-outline-primary">🔊 Sesi Etkinleştir</button>
+  </div>
+</div>
+
+<table class="table table-bordered table-sm align-middle">
+ <thead class="table-light">
+  <tr>
+    <th style="width:20%;">Masa</th>
+    <th style="width:28%;">Ürün</th>
+    <th>Not</th>
+    <th style="width:120px;">Durum</th>
+    <th style="width:120px;">İşlem</th>
+  </tr>
+</thead>
+
+  <tbody id="barItemsBody">
+  {% for item in items %}
+  <tr data-row
+      data-table="{{ (item.order.table.name if item.order and item.order.table else 'masa')|lower }}"
+      data-note="{{ (item.note or '')|lower }}"
+      data-id="{{ item.id }}">
+    <td class="fw-semibold">
+      {{ item.order.table.name if item.order and item.order.table else 'Masa' }}  {# gerekirse table.id göster #}
+    </td>
+    <td class="fw-semibold">{{ item.product.name }}</td>
+    <td class="text-muted">{{ item.note or '' }}</td>
+    <td>
+      {% if item.status == "hazırlanıyor" %}
+        <span class="badge bg-warning text-dark">hazırlanıyor</span>
+      {% elif item.status == "hazır" %}
+        <span class="badge bg-success">hazır</span>
+      {% else %}
+        <span class="badge bg-secondary">{{ item.status }}</span>
+      {% endif %}
+    </td>
+    <td>
+      {% if item.status == "hazırlanıyor" %}
+      <form class="inline-update" method="POST" action="{{ url_for('bar.bar_durum_guncelle', item_id=item.id) }}">
+        <button class="btn btn-sm btn-success">✔ Hazır</button>
+      </form>
+      {% else %}
+        ✅
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
+
+</table>
+
+<!-- ... üst kısmınız aynen ... -->
+
+<!-- 🔊 Ses -->
+<audio id="notificationSound" src="{{ url_for('static', filename='sounds/bip.mp3') }}" preload="auto"></audio>
+
+<!-- 📡 Socket.IO -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+(function(){
+  const tbody = document.getElementById('barItemsBody');
+  const sound = document.getElementById('notificationSound');
+  const liveStatus = document.getElementById('liveStatus');
+  const filterInput = document.getElementById('filterInput');
+  const enableSoundBtn = document.getElementById('enableSound');
+
+  let soundEnabled = false;
+  enableSoundBtn.addEventListener('click', async () => {
+    try {
+      await sound.play();
+      sound.pause();
+      sound.currentTime = 0;
+      soundEnabled = true;
+      enableSoundBtn.classList.replace('btn-outline-primary', 'btn-outline-success');
+      enableSoundBtn.textContent = '🔔 Ses açık';
+    } catch (e) {
+      alert('Tarayıcı izin vermedi. Bir tıklama sonrası tekrar deneyin.');
+    }
+  });
+
+  // — Canlı bağlantı
+  let socket;
+  try {
+    // Gerekirse io({transports:['websocket','polling']}) veya io('/ws')
+    socket = io();
+    liveStatus.textContent = 'bağlanıyor…';
+    socket.on('connect', ()=> { console.log('[bar] connected'); liveStatus.textContent = 'bağlandı'; });
+    socket.on('disconnect', ()=> { console.log('[bar] disconnected'); liveStatus.textContent = 'bağlantı koptu'; });
+  } catch (e) {
+    liveStatus.textContent = 'socket yok';
+    console.warn('[bar] socket init failed', e);
+  }
+
+  function playSound(){
+    if(!soundEnabled) return;
+    try { sound.currentTime = 0; sound.play(); } catch {}
+  }
+
+  function hardReload(){ console.log('[bar] hard reload'); location.reload(); }
+
+   async function softRefresh(){
+    console.log('[bar] soft refresh');
+    try {
+      // her çağrıda GÜNCEL tbody'yi al
+      const currentTbody = document.getElementById('barItemsBody');
+      if (!currentTbody) throw new Error('current tbody not found');
+
+      const url = new URL(window.location.href);
+      url.searchParams.set('partial','1');
+      const res = await fetch(url.toString(), {
+        headers: {
+          'X-Requested-With':'fetch',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      if(!res.ok) throw new Error('partial yok');
+      const html = await res.text();
+
+      const temp = document.createElement('template');
+      temp.innerHTML = html.trim();
+      const newBody = temp.content.querySelector('tbody');
+      if(!newBody) throw new Error('tbody bulunamadı');
+
+      // DEĞİŞİKLİK: eski "tbody" değişkenini değil, GÜNCEL node'u değiştir
+      currentTbody.replaceWith(newBody);
+      newBody.id = 'barItemsBody';
+    } catch (e) {
+      console.warn('[bar] soft refresh failed, fallback hard reload:', e);
+      hardReload();
+    }
+  }
+
+  // Filtre
+
+  if (filterInput) {
+    filterInput.addEventListener('input', function(){
+      const q = (this.value || '').toLowerCase().trim();
+      document.querySelectorAll('[data-row]').forEach(tr=>{
+        const name  = tr.getAttribute('data-name')  || '';
+        const note  = tr.getAttribute('data-note')  || '';
+        const table = tr.getAttribute('data-table') || '';
+        tr.style.display = (q==='' || name.includes(q) || note.includes(q) || table.includes(q)) ? '' : 'none';
+      });
+    });
+  }
+
+  // Inline hazır
+  document.addEventListener('submit', async (e)=>{
+    const form = e.target.closest('form.inline-update');
+    if(!form) return;
+    e.preventDefault();
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    try{
+      const res = await fetch(form.action, { method: 'POST' });
+      if(!res.ok) throw new Error('Güncelleme başarısız');
+      const tr = form.closest('tr');
+      if(tr){
+        tr.children[2].innerHTML = '<span class="badge bg-success">hazır</span>';
+        tr.children[3].innerHTML = '✅';
+      }
+    }catch(err){
+      console.warn(err);
+      hardReload();
+    }
+  });
+
+  // — GELEN OLAYLAR —
+  if (socket){
+    socket.on('yeni_siparis', (data)=>{
+      console.log('[bar] yeni_siparis ALINDI:', data);
+      playSound();
+      softRefresh();
+    });
+
+    socket.on('order:updated', (payload)=>{
+      console.log('[bar] order:updated ALINDI:', payload);
+      playSound();
+      softRefresh();
+    });
+
+    socket.on('items_cancelled', (payload)=>{
+      console.log('[bar] items_cancelled ALINDI:', payload);
+      softRefresh();
+    });
+  }
+
+  // heartbeat
+  setInterval(()=> console.log('[bar] heartbeat'), 30000);
+})();
+</script>

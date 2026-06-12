@@ -1,0 +1,24 @@
+<h2>Yeni Sipariş Oluştur</h2>
+
+<form method="POST">
+  <label>Masa Seç:</label>
+  <select name="table_id" required>
+    {% for table in tables %}
+      <option value="{{ table.id }}">{{ table.name }}</option>
+    {% endfor %}
+  </select>
+
+  <hr>
+
+  {% for product in products %}
+    <div>
+      <strong>{{ product.name }} ({{ product.price }} ₺)</strong><br>
+      Miktar: <input type="number" name="quantity" value="0" min="0">
+      <input type="hidden" name="product_id" value="{{ product.id }}">
+      Not: <input type="text" name="note">
+    </div>
+    <hr>
+  {% endfor %}
+
+  <button type="submit">Siparişi Gönder</button>
+</form>

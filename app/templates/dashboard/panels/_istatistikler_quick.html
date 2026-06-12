@@ -1,0 +1,114 @@
+<div class="card shadow-sm border-0 rounded-3">
+  <!-- Üst başlık: ortalı, yan yana -->
+  <div class="nx-inner-header d-flex justify-content-center align-items-center gap-3">
+    <span class="fw-semibold">📈 Hızlı İstatistikler</span>
+    <a class="btn btn-sm btn-outline-teal" href="{{ url_for('istatistikler.istatistikler') }}">Detay</a>
+  </div>
+
+  <div class="card-body nx-inner">
+    <div class="kpi-grid">
+      <!-- Bugün Tahsilat -->
+      <div class="kpi-card kpi-accent">
+        <div class="kpi-label">Bugün Tahsilat</div>
+        <div class="kpi-value">
+          ₺ {{ (revenue_today|default(0)|float)|round(2) }}
+        </div>
+        <div class="kpi-sub">
+          {{ window_start.strftime('%H:%M') if window_start else '—' }}–{{ window_end.strftime('%H:%M') if window_end else '—' }}
+        </div>
+      </div>
+
+      <!-- Açık (anlık) -->
+      <div class="kpi-card">
+        <div class="kpi-label">Açık (Anlık)</div>
+        <div class="kpi-value">
+          ₺ {{ (open_total_today|default(0)|float)|round(2) }}
+        </div>
+        <div class="kpi-sub">ödenmemiş kalemler</div>
+      </div>
+
+      <!-- Toplam Ciro = Tahsilat + Açık -->
+      <div class="kpi-card kpi-accent">
+        <div class="kpi-label">Toplam Ciro</div>
+        <div class="kpi-value">
+          ₺ {{ (ciro_today|default(0)|float)|round(2) }}
+        </div>
+        <div class="kpi-sub">tahsilat + açık</div>
+      </div>
+
+      <!-- İşlem (ödeme sayısı) -->
+      <div class="kpi-card">
+        <div class="kpi-label">İşlem</div>
+        <div class="kpi-value">
+          {{ tx_count_today|default(0) }}
+        </div>
+        <div class="kpi-sub">adettir</div>
+      </div>
+
+      <!-- Sepet Ortalaması -->
+      <div class="kpi-card">
+        <div class="kpi-label">Sepet Ort.</div>
+        <div class="kpi-value">
+          ₺ {{ (avg_basket_today|default(0)|float)|round(2) }}
+        </div>
+        <div class="kpi-sub">tahsilat/işlem</div>
+      </div>
+
+      <!-- İptal Tutarı -->
+      <div class="kpi-card kpi-warn">
+        <div class="kpi-label">İptal</div>
+        <div class="kpi-value">
+          ₺ {{ (cancelled_total_today|default(0)|float)|round(2) }}
+        </div>
+        <div class="kpi-sub">bugün</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .nx-inner-header{
+    padding: 18px 20px 12px;
+    background: var(--surface, #fff);
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    font-size: 1.1rem; font-weight: 700;
+  }
+  .btn-outline-teal{
+    border:1px solid var(--brand-primary, #0EA5A3);
+    color:var(--brand-primary, #0EA5A3);
+    border-radius:8px; font-weight:600; padding:6px 12px;
+  }
+  .btn-outline-teal:hover{ background:var(--brand-primary, #0EA5A3); color:#fff; }
+
+  .nx-inner{ padding:20px !important; }
+
+  /* KPI grid */
+  .kpi-grid{
+    display:grid; gap:12px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    margin-top: 6px;
+  }
+  .kpi-card{
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px; padding: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.05);
+    display:flex; flex-direction:column; gap:4px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .kpi-card:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.08); }
+
+  .kpi-label{ font-size:.85rem; color: var(--muted, #6b7280); font-weight:600; letter-spacing:.2px; }
+  .kpi-value{ font-size:1.35rem; font-weight:800; color: var(--text, #111827); }
+  .kpi-sub{ font-size:.78rem; color: var(--muted, #6b7280); }
+
+  /* Vurgulu kartlar */
+  .kpi-accent{
+    border-color: rgba(14,165,163,.35);
+    background: linear-gradient(0deg, rgba(14,165,163,.06), rgba(14,165,163,.06)), var(--surface, #fff);
+  }
+  .kpi-warn{
+    border-color: rgba(196,108,54,.35);
+    background: linear-gradient(0deg, rgba(196,108,54,.06), rgba(196,108,54,.06)), var(--surface, #fff);
+  }
+</style>

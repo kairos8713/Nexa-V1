@@ -1,0 +1,132 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Yetki & Flag Yönetimi (Admin){% endblock %}
+
+{% block styles %}
+<style>
+  .nx-perms-root{--nx-gap:14px;--nx-border:#e5e7eb;--nx-surface:#fff;--nx-text:#0f172a}
+  .nx-perms-root *{box-sizing:border-box}
+  .nx-perms-root{width:100%;margin:0 auto;max-width:1200px;padding:0 12px}
+  .nx-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 10px}
+  .nx-head h2{margin:0;font-weight:800;font-size:clamp(18px,3vw,22px)}
+  .tag{display:inline-block;font-size:.78rem;padding:.1rem .45rem;border:1px solid var(--nx-border);border-radius:6px}
+  .nx-card{border:1px solid var(--nx-border);border-radius:12px;background:var(--nx-surface);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:var(--nx-gap)}
+  .nx-card-hd{padding:10px 12px;border-bottom:1px solid var(--nx-border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .nx-card-bd{padding:12px}
+  .muted{color:#64748b;font-size:.9rem}
+
+  .nx-input{height:36px;padding:0 10px;border:1px solid var(--nx-border);border-radius:8px;background:#fff;min-width:0}
+  .nx-btn{height:36px;border-radius:10px;padding:0 12px;border:1px solid transparent;background:#0EA5A3;color:#fff;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+  .nx-btn.secondary{background:#fff;color:var(--nx-text);border-color:var(--nx-border)}
+  .nx-btn:disabled{opacity:.6;cursor:not-allowed}
+
+  .table-wrap{overflow:auto;max-width:100%}
+  .perms{border-collapse:separate;border-spacing:0;width:max(960px,100%)}
+  .perms th,.perms td{padding:8px 10px;border-bottom:1px solid var(--nx-border);white-space:nowrap}
+  .perms thead th{position:sticky;top:0;background:var(--nx-surface);z-index:2}
+  .perms .role-col{position:sticky;left:0;background:var(--nx-surface);z-index:3;font-weight:700}
+
+  .btn-sm{font-size:.85rem;padding:.2rem .55rem;border-radius:8px;border:1px solid var(--nx-border)}
+  .btn-success{background:#0EA5A3;color:#fff;border-color:transparent}
+  .btn-secondary{background:#fff;color:#0f172a}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-perms-root">
+  <div class="nx-head">
+    <h2>Yetki & Flag Yönetimi <span class="tag">Admin Only</span></h2>
+    <div class="muted">Bu sayfa yalnızca <strong>admin</strong> için görünür. Tüm işlemler sayfa yenilenerek doğrulanır.</div>
+  </div>
+
+  <!-- PERMISSIONS -->
+  <div class="nx-card">
+    <div class="nx-card-hd">
+      <div>
+        <strong>İzinler (Admin’de tanımlı anahtarlar)</strong>
+        <div class="muted">Admin rolünde tanımlı tüm izinleri diğer rollerde aç/kapat.</div>
+      </div>
+      <form method="post" action="{{ url_for('perms_admin.add_role_form') }}" style="display:flex;gap:8px;align-items:center;min-width:260px">
+        <input name="role" class="nx-input" type="text" placeholder="Yeni rol adı (örn: cashier, waiter)" style="flex:1;min-width:160px" required>
+        <button class="nx-btn secondary" type="submit">Rol Ekle</button>
+      </form>
+    </div>
+
+    <div class="nx-card-bd">
+      <div class="table-wrap">
+        <table class="perms">
+          <thead>
+            <tr>
+              <th class="role-col">Rol</th>
+              {% for p in admin_perms %}
+                <th>{{ p }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for role in roles %}
+            <tr>
+              <td class="role-col">{{ role }}</td>
+              {% for p in admin_perms %}
+              <td>
+                {% if role == "admin" %}
+                  <span class="tag">her zaman açık</span>
+                {% else %}
+                  {% if table[role][p] %}
+                    <a href="{{ url_for('perms_admin.toggle', role=role, perm=p, value=0) }}" class="btn-sm btn-success">Açık</a>
+                  {% else %}
+                    <a href="{{ url_for('perms_admin.toggle', role=role, perm=p, value=1) }}" class="btn-sm btn-secondary">Kapalı</a>
+                  {% endif %}
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <form method="post" action="{{ url_for('perms_admin.add_perm_form') }}" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input name="perm" class="nx-input" type="text" placeholder="Yeni izin anahtarı (örn: gunsonu_rapor)" style="flex:1;min-width:220px" required>
+        <label style="display:flex;align-items:center;gap:6px;white-space:nowrap">
+          <input name="add_to_admin" type="checkbox" checked> Admin’e de ekle
+        </label>
+        <button class="nx-btn" type="submit">İzin Ekle</button>
+      </form>
+      <div class="muted" style="margin-top:6px">
+        Not: Yeni izin eklendiğinde admin’e otomatik verilir (işaretli bırakılırsa). Diğer rollerde başlangıçta kapalıdır.
+      </div>
+    </div>
+  </div>
+
+  <!-- FLAGS -->
+  <div class="nx-card">
+    <div class="nx-card-hd">
+      <strong>Feature Flags</strong>
+      <span class="muted">Sistem genelindeki özellik anahtarları</span>
+    </div>
+    <div class="nx-card-bd">
+      {% for key, val in flags.items() %}
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--nx-border);padding:8px 0;gap:10px">
+        <div>
+          <div><strong>{{ key }}</strong></div>
+          <div class="muted">Durum: <em>{{ val }}</em></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          {% if val %}
+            <a class="nx-btn secondary btn-sm" href="{{ url_for('perms_admin.toggle_flag', key=key, value=0) }}">Kapat</a>
+          {% else %}
+            <a class="nx-btn btn-sm" href="{{ url_for('perms_admin.toggle_flag', key=key, value=1) }}">Aç</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <form method="post" action="{{ url_for('perms_admin.add_flag_form') }}" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input name="key" class="nx-input" type="text" placeholder="Yeni flag anahtarı (örn: inventory_module)" style="flex:1;min-width:180px" required>
+        <button class="nx-btn secondary" type="submit">Flag Oluştur / Aç</button>
+      </form>
+      <div class="muted" style="margin-top:6px">Yeni flag yoksa oluşturulur, varsa açılır. İstersen satırdaki butonla kapatabilirsin.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

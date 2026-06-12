@@ -1,0 +1,457 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Nexa · Masalar{% endblock %}
+
+{% block styles %}
+<style>
+  /* ===== Sayfa ızgarası ===== */
+  .nx-page{
+    display:grid; gap:16px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 992px){
+    .nx-page{ grid-template-columns: 260px 1fr; }
+  }
+
+  /* ===== Kart/başlık/beden ===== */
+  .nx-card{
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 14px;
+    box-shadow: var(--shadow, 0 12px 28px rgba(0,0,0,.06));
+  }
+  .nx-head{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .nx-head .title{
+    font-weight:800; letter-spacing:.2px; font-size:1.02rem;
+    margin:0 auto; text-align:center;
+  }
+  .nx-head .actions{ display:flex; align-items:center; gap:8px; }
+  .nx-body{ padding: 14px 16px; }
+
+  /* ===== Üst üç panel grid ===== */
+  .nx-toolbar-grid{
+    display:grid; gap:16px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 768px){
+    .nx-toolbar-grid{ grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 1200px){
+    .nx-toolbar-grid{ grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  /* ===== Panel aç/kapat ===== */
+  .panel { display: none; overflow: hidden; }
+  .panel.is-open { display:block; }
+  .toggle-btn{
+    display:inline-flex; align-items:center; gap:.5rem;
+    border:1px solid var(--brand-primary, #0EA5A3);
+    color: var(--brand-primary, #0EA5A3);
+    background: transparent;
+    border-radius:10px; padding:.5rem .8rem; font-weight:600;
+    cursor:pointer;
+  }
+  .toggle-btn:hover{ background: var(--brand-primary, #0EA5A3); color:#fff; }
+  .chev{
+    width: 10px; height:10px; position: relative; display:inline-block;
+    transform: rotate(-90deg); transition: transform .18s ease;
+  }
+  .chev::before, .chev::after{
+    content:""; position:absolute; inset:0;
+    border-right:2px solid currentColor; border-bottom:2px solid currentColor;
+    transform: rotate(45deg);
+  }
+  .toggle-btn[aria-expanded="true"] .chev{ transform: rotate(0deg); }
+
+  /* ===== Formlar ===== */
+  .form-grid{ display:grid; gap:10px; grid-template-columns: 1fr; }
+  @media (min-width: 576px){
+    .form-grid.two{ grid-template-columns: 1fr 1fr; }
+  }
+  .btn-teal{
+    background: var(--brand-primary, #0EA5A3); color:#fff; border:none;
+    border-radius:10px; padding:.6rem .9rem; font-weight:700; cursor:pointer;
+  }
+  .btn-teal:hover{ filter: brightness(1.05); }
+
+  /* ===== Bölgeler listesi ===== */
+  .regions-list{ display:flex; flex-direction:column; gap:8px; }
+  .region-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 12px; border:1px solid var(--border, #e5e7eb);
+    border-radius:10px; background: var(--surface, #fff);
+    cursor:pointer; text-decoration:none; color: var(--text, #1f2937);
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .region-item:hover{ transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.06); }
+  .region-item.is-active{
+    border-color: rgba(14,165,163,.35);
+    box-shadow: 0 8px 22px rgba(14,165,163,.08);
+  }
+  .region-meta{ font-size:.8rem; color:#6b7280; }
+
+  /* ===== Masalar grid ===== */
+  .tables-grid{
+    display:grid; gap:12px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+
+  /* === Masa kartları: koyu tema dostu, konturlu rozet, belirgin ₺ satırı === */
+  .table-card{
+    background: var(--card, var(--surface,#0f172a));
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 14px; padding: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.20);
+    display:flex; flex-direction:column; gap:10px;
+    transition: transform .15s ease, box-shadow .15s ease;
+    cursor: pointer;
+  }
+  .table-card:hover{ transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0,0,0,.28); }
+
+  .tc-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .tc-name{ font-weight:800; color: var(--text-strong, #e5e7eb); }
+
+  .tc-badge{
+    font-size:.72rem; padding:3px 9px; border-radius:999px;
+    background: transparent; /* OUTLINE */
+    border:1px solid rgba(148,163,184,.35);
+    color: rgba(148,163,184,.9);
+    text-transform: lowercase;
+  }
+  .tc-bos{ border-color: rgba(14,165,163,.45); color:#2dd4bf; }
+  .tc-dolu{ border-color: rgba(196,108,54,.55); color:#f59e0b; }
+
+  .tc-amount{
+    margin-top:6px;
+    font-weight:800; font-size:1.1rem;
+    color: var(--brand-primary, #10b3af);
+  }
+
+  /* Yönet butonu */
+  .tc-btn{
+    margin-top:10px; display:inline-block; text-align:center; text-decoration:none;
+    background: var(--brand-primary, #0EA5A3); color:#fff; border-radius:12px;
+    padding:10px 12px; font-weight:700;
+  }
+  .tc-btn:hover{ filter: brightness(1.05); }
+
+  /* Tema: light için ince ayar */
+  html[data-theme="light"] .table-card{
+    background:#ffffff; border-color: #e5e7eb; box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  }
+  html[data-theme="light"] .tc-name{ color:#0f172a; }
+  html[data-theme="light"] .tc-badge{ border-color:#e5e7eb; color:#475569; }
+  html[data-theme="light"] .tc-bos{ color:#0f766e; border-color: rgba(14,165,163,.35); }
+  html[data-theme="light"] .tc-dolu{ color:#7a411f; border-color: rgba(196,108,54,.35); }
+
+  /* ===== Filtre çipleri ===== */
+  .filter-chips{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border:1px solid var(--border,#e5e7eb);
+    border-radius:999px; background:var(--surface,#fff);
+    color:var(--text,#1f2937); cursor:pointer; user-select:none; font-weight:600;
+  }
+  .chip.is-active{ border-color: rgba(14,165,163,.45); box-shadow: 0 4px 12px rgba(14,165,163,.10); }
+
+  /* Küçük üst boşluk */
+  .nx-gap-top{ margin-top: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ===== ÜST: Üç panel (varsayılan kapalı) ===== #}
+<div class="nx-toolbar-grid">
+
+  {# — Bölge Oluştur — #}
+  <div class="nx-card">
+    <div class="nx-head">
+      <div class="title">📍 Bölge Oluştur</div>
+      <div class="actions">
+        <button class="toggle-btn" type="button" data-target="#panelRegion">
+          <span class="chev" aria-hidden="true"></span> Paneli Aç/Kapat
+        </button>
+      </div>
+    </div>
+    <div id="panelRegion" class="panel" aria-hidden="true">
+      <div class="nx-body">
+        {% set _has_region_add = has_region_ekle|default(false) %}
+        <form method="POST" action="{{ _has_region_add and url_for('masa.region_ekle') or '#' }}">
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Bölge Adı</label>
+              <input type="text" name="region_name" class="form-control" placeholder="Örn: Bahçe" required>
+            </div>
+          </div>
+          <div class="mt-3 d-flex justify-content-end">
+            <button class="btn-teal" type="submit" {% if not _has_region_add %}disabled title="Backend endpoint henüz eklenmedi"{% endif %}>
+              Kaydet
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# — Masa Oluştur — #}
+  <div class="nx-card">
+    <div class="nx-head">
+      <div class="title">🧾 Masa Oluştur</div>
+      <div class="actions">
+        <button class="toggle-btn" type="button" data-target="#panelTable">
+          <span class="chev" aria-hidden="true"></span> Paneli Aç/Kapat
+        </button>
+      </div>
+    </div>
+    <div id="panelTable" class="panel" aria-hidden="true">
+      <div class="nx-body">
+        {% set _has_table_add = has_masa_ekle|default(false) %}
+        <form method="POST" action="{{ _has_table_add and url_for('masa.masa_ekle') or '#' }}">
+          <div class="form-grid two">
+            <div>
+              <label class="form-label">Masa Adı</label>
+              <input type="text" name="name" class="form-control" placeholder="Örn: Masa 12" required>
+            </div>
+            <div>
+              <label class="form-label">Bölge Seç</label>
+              {% if regions and regions|length %}
+                <select name="region_id" class="form-select" required>
+                  <option value="" selected disabled>Bir bölge seçin</option>
+                  {% for r in regions %}
+                    <option value="{{ r.id }}">{{ r.name }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="text" class="form-control" value="Önce bölge oluşturun" disabled>
+              {% endif %}
+            </div>
+          </div>
+          <div class="mt-3 d-flex justify-content-end">
+            <button class="btn-teal" type="submit"
+                    {% if not _has_table_add or not (regions and regions|length) %}disabled title="Backend veya bölgeler hazır değil"{% endif %}>
+              Kaydet
+            </button>
+          </div>
+        </form>
+        <div class="text-muted small mt-2">Bölge yoksa önce “Bölge Oluştur” panelinden ekleyin.</div>
+      </div>
+    </div>
+  </div>
+
+  {# — Masa Sil (Arşivle) — #}
+  <div class="nx-card">
+    <div class="nx-head">
+      <div class="title">🗑️ Masa Sil (Arşivle)</div>
+      <div class="actions">
+        <button class="toggle-btn" type="button" data-target="#panelArchive">
+          <span class="chev" aria-hidden="true"></span> Paneli Aç/Kapat
+        </button>
+      </div>
+    </div>
+    <div id="panelArchive" class="panel" aria-hidden="true">
+      <div class="nx-body">
+        {% set _has_masa_archive = has_masa_arsivle|default(true) %}
+        <form id="formArchive" method="POST" action="#" onsubmit="return nxArchiveSubmit(this)">
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Masa Seç (Adıyla)</label>
+              {% if masalar and masalar|length %}
+                <select name="masa_id" class="form-select" required>
+                  <option value="" selected disabled>Bir masa seçin</option>
+                  {% for m in masalar %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="text" class="form-control" value="Önce masa oluşturun" disabled>
+              {% endif %}
+            </div>
+          </div>
+          <div class="mt-3 d-flex justify-content-end">
+            <button class="btn-teal" type="submit"
+              {% if not _has_masa_archive or not (masalar and masalar|length) %}disabled title="Arşivleme yetkisi yok veya masa bulunamadı"{% endif %}>
+              Arşivle
+            </button>
+          </div>
+        </form>
+        <div class="text-muted small mt-2">
+          Not: Bu işlem masayı kalıcı silmez; <strong>arşive</strong> taşır.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ===== ANA: Sol Bölgeler — Sağ Masalar ===== #}
+<div class="nx-page nx-gap-top">
+  <aside class="nx-card">
+    <div class="nx-head">
+      <div class="title">📍 Bölgeler</div>
+      <div class="actions">
+        <a class="toggle-btn" href="{{ url_for('masa.masa_listesi') }}">Tümü</a>
+      </div>
+    </div>
+    <div class="nx-body">
+      {% if regions and regions|length %}
+        <div class="regions-list">
+          {% for r in regions %}
+            <a class="region-item {% if active_region_id is defined and active_region_id == r.id %}is-active{% endif %}"
+               href="{{ url_for('masa.masa_listesi', region_id=r.id) }}">
+              <span>{{ r.name }}</span>
+              {% set count = (masalar | selectattr('region_id','equalto', r.id) | list | length) if masalar else 0 %}
+              <span class="region-meta">{{ count }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted">Bölge tanımlı değil.</div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <section class="nx-card">
+    <div class="nx-head">
+      <div class="title">🧾 Masalar</div>
+      <div class="actions">
+        <div class="filter-chips" id="tableFilters">
+          <button class="chip is-active" data-status="">Tümü</button>
+          <button class="chip" data-status="dolu">Dolu</button>
+          <button class="chip" data-status="boş">Boş</button>
+        </div>
+        <a class="toggle-btn" href="{{ url_for('masa.masa_listesi') }}">Tüm Masalar</a>
+      </div>
+    </div>
+
+    <div class="nx-body">
+      {% if masalar and masalar|length %}
+        <div class="tables-grid">
+          {% for masa in masalar %}
+            {% set s = (masa.status or '')|lower %}
+            <div class="table-card"
+                 data-status="{{ 'boş' if s in ['boş','bos'] else ( 'dolu' if s in ['dolu'] else '' ) }}"
+                 onclick="window.location.href='{{ url_for('masa.masa_dashboard', masa_id=masa.id) }}'">
+
+              <div class="tc-top">
+                <div class="tc-name">{{ masa.name }}</div>
+                <span class="tc-badge
+                  {% if s in ['boş','bos'] %} tc-bos
+                  {% elif s in ['dolu'] %} tc-dolu
+                  {% endif %}">
+                  {{ s or '—' }}
+                </span>
+              </div>
+
+              {# — Sadece doluysa ₺ satırını göster — #}
+              {% if s in ['dolu'] and ciro_by_table is defined %}
+                {% set _ciro = ciro_by_table.get(masa.id, 0.0) %}
+                <div class="tc-amount">₺ {{ '%.2f'|format(_ciro) }}</div>
+              {% endif %}
+
+              <a href="{{ url_for('masa.masa_dashboard', masa_id=masa.id) }}" class="tc-btn">Yönet</a>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted">Masa bulunamadı.</div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{% endblock %}
+
+{% block scripts_after %}
+<script>
+  // Panel toggler
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.toggle-btn');
+    if(!btn) return;
+    const sel = btn.getAttribute('data-target');
+    if(!sel) return;
+    const panel = document.querySelector(sel);
+    if(!panel) return;
+    const open = panel.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  });
+
+  // Masa Arşivleme action'ı
+  function nxArchiveSubmit(formEl){
+    const sel = formEl.querySelector('select[name="masa_id"]');
+    if(!sel || !sel.value){
+      alert('Lütfen arşivlenecek masayı seçin.');
+      return false;
+    }
+    const templateUrl = "{{ url_for('masa.masa_arsivle', masa_id=123456789) }}";
+    formEl.action = templateUrl.replace('123456789', sel.value);
+    return true;
+  }
+
+  // Doğal sıralama yardımcıları
+  function extractNum(name){
+    const m = String(name || '').match(/\d+/);
+    return m ? parseInt(m[0], 10) : null;
+  }
+  function naturalCompare(aText, bText){
+    const aNum = extractNum(aText);
+    const bNum = extractNum(bText);
+    if (aNum !== null && bNum !== null && aNum !== bNum) {
+      return aNum - bNum;
+    }
+    try { return aText.localeCompare(bText, 'tr', { numeric: true, sensitivity: 'base' }); }
+    catch { return aText.localeCompare(bText); }
+  }
+
+  // Masalar grid'ini sırala + arşiv select'i sırala
+  document.addEventListener('DOMContentLoaded', () => {
+    const grid = document.querySelector('.tables-grid');
+    if (grid) {
+      const cards = Array.from(grid.children);
+      cards.sort((a, b) => {
+        const aName = a.querySelector('.tc-name')?.textContent.trim() || '';
+        const bName = b.querySelector('.tc-name')?.textContent.trim() || '';
+        return naturalCompare(aName, bName);
+      });
+      cards.forEach(card => grid.appendChild(card));
+    }
+
+    const selArchive = document.querySelector('#panelArchive select[name="masa_id"]');
+    if (selArchive) {
+      const opts = Array.from(selArchive.querySelectorAll('option')).filter(o => o.value);
+      opts.sort((a, b) => naturalCompare(a.textContent.trim(), b.textContent.trim()));
+      const placeholder = selArchive.querySelector('option[value=""]');
+      selArchive.innerHTML = '';
+      if (placeholder) selArchive.appendChild(placeholder);
+      opts.forEach(o => selArchive.appendChild(o));
+    }
+  });
+
+  // Durum filtresi (Tümü/Dolu/Boş)
+  document.addEventListener('DOMContentLoaded', () => {
+    const wrap = document.getElementById('tableFilters');
+    const grid = document.querySelector('.tables-grid');
+    if(!wrap || !grid) return;
+
+    const chips = Array.from(wrap.querySelectorAll('.chip'));
+    const cards = Array.from(grid.children);
+
+    function applyFilter(status){
+      cards.forEach(card => {
+        const st = (card.getAttribute('data-status') || '').toLowerCase();
+        card.style.display = (!status || st === status) ? '' : 'none';
+      });
+    }
+    wrap.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      chips.forEach(c => c.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      applyFilter((btn.getAttribute('data-status') || '').toLowerCase());
+    });
+  });
+</script>
+{% endblock %}

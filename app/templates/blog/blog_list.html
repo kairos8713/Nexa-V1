@@ -1,0 +1,161 @@
+{% extends "base_public.html" %}
+
+{% block head %}
+<style>
+    .blog-header {
+        padding: 8rem 0 4rem;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 4rem;
+        color: var(--sand);
+        margin-bottom: 1rem;
+    }
+
+    .blog-description {
+        color: rgba(247, 245, 239, 0.6);
+        max-width: 600px;
+        margin: 0 auto;
+        font-weight: 300;
+        font-size: 1.1rem;
+    }
+
+    .blog-grid {
+        display: grid;
+        grid-template-cols: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 3rem;
+        padding-bottom: 8rem;
+    }
+
+    @media (max-width: 640px) {
+        .blog-grid {
+            grid-template-cols: 1fr;
+        }
+    }
+
+    .post-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        group: hover;
+    }
+
+    .post-image {
+        aspect-ratio: 16/9;
+        border-radius: 1rem;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: #1c2d22;
+    }
+
+    .post-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+    }
+
+    .post-card:hover .post-image img {
+        transform: scale(1.05);
+    }
+
+    .post-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sand);
+    }
+
+    .post-title {
+        font-size: 1.75rem;
+        line-height: 1.2;
+        color: white;
+        transition: color 0.3s ease;
+    }
+
+    .post-card:hover .post-title {
+        color: var(--sand);
+    }
+
+    .post-excerpt {
+        color: rgba(247, 245, 239, 0.6);
+        font-size: 1rem;
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .read-more {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        color: var(--sand);
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.1em;
+    }
+
+    .empty-state {
+        text-align: center;
+        color: rgba(198, 182, 140, 0.5);
+        padding: 5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header class="blog-header">
+        <h1 class="animate-up">Hikayemiz</h1>
+        <p class="blog-description animate-up" style="animation-delay: 0.1s;">
+            Veloya'dan haberler, etkinlikler ve ruhumuzu yansıtan yazılar.
+        </p>
+    </header>
+
+    <section class="blog-grid">
+        {% for post in posts %}
+        <article class="post-card animate-up" style="animation-delay: {{ 0.1 + (loop.index * 0.1) }}s;">
+            <a href="/blog/{{ post.slug }}">
+                <div class="post-image">
+                    {% if post.cover_image %}
+                    <img src="{{ post.cover_image }}" alt="{{ post.title }}">
+                    {% else %}
+                    <div
+                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: rgba(198, 182, 140, 0.2);">
+                        Veloya Blog</div>
+                    {% endif %}
+                </div>
+            </a>
+
+            <div class="post-meta">
+                <span>{{ (post.published_at or post.created_at).strftime('%d %B %Y') }}</span>
+            </div>
+
+            <a href="/blog/{{ post.slug }}">
+                <h2 class="post-title">{{ post.title }}</h2>
+            </a>
+
+            <p class="post-excerpt">
+                {{ post.content|striptags|truncate(150) }}
+            </p>
+
+            <a href="/blog/{{ post.slug }}" class="read-more">
+                Devamını Oku <span>→</span>
+            </a>
+        </article>
+        {% endfor %}
+    </section>
+
+    {% if not posts %}
+    <div class="empty-state animate-up">
+        <p>Henüz bir blog yazısı bulunmuyor.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,322 @@
+<div class="card shadow-sm border-0 rounded-3">
+  <!-- Üst başlık (ortalanmış) -->
+  <div class="nx-inner-header d-flex justify-content-center align-items-center gap-3">
+    <span class="fw-semibold">🧾 Masalar</span>
+    <a class="btn btn-sm btn-outline-teal" href="{{ url_for('masa.masa_listesi') }}">Tüm Masalar</a>
+  </div>
+
+  <div class="card-body nx-inner">
+
+    <div class="nx-masa-wrap">
+      {# ---- Sol: Bölgeler (opsiyonel, mevcut yapı korunuyor) ---- #}
+      {% if regions %}
+      <aside class="nx-regions">
+        <div class="nx-regions-title">Bölgeler</div>
+        <div class="nx-regions-list" id="regionList">
+          <button class="nx-region-btn is-active" data-region-id="">Tümü</button>
+          {% for r in regions %}
+            <button class="nx-region-btn" data-region-id="{{ r.id }}">{{ r.name }}</button>
+          {% endfor %}
+        </div>
+      </aside>
+      {% endif %}
+
+      {# ---- Sağ: Masalar Grid ---- #}
+      <section class="nx-masa-grid-wrap">
+        <!-- ✅ Durum filtreleri (Hepsi / Sadece Dolu / Sadece Boş) -->
+        <div class="nx-status-filters" id="statusFilters">
+          <button class="nx-status-btn is-active" data-status="">Hepsi</button>
+          <button class="nx-status-btn" data-status="dolu">Sadece Dolu</button>
+          <button class="nx-status-btn" data-status="bos">Sadece Boş</button>
+        </div>
+
+        {% if tables %}
+          <div class="tables-grid" id="tablesGrid">
+            {% for m in tables %}
+              {# Arşivdeki masaları gizle #}
+              {% if m.is_archived %}
+                {# skip #}
+              {% else %}
+                            <div class="table-card"
+                  data-table
+                  data-region-id="{{ m.region_id or '' }}">
+                <div class="tc-top">
+                  <div class="tc-name">{{ m.name }}</div>
+                  <span class="tc-badge
+                    {% if (m.status or '').lower() in ['boş','bos'] %} tc-bos
+                    {% elif (m.status or '').lower() in ['dolu'] %} tc-dolu
+                    {% elif (m.status or '').lower() in ['rezerve','rezerve edildi'] %} tc-rezerve
+                    {% else %} tc-norm {% endif %}">
+                    {{ m.status or '—' }}
+                  </span>
+                </div>
+
+                {# ✅ DOLU ise ve backend'den masa için açık ciro varsa göster #}
+                {% set ciro = (table_open_map.get(m.id) if table_open_map else None) %}
+                {% if (m.status or '').lower() in ['dolu'] and ciro and ciro > 0 %}
+                  <div class="tc-ciro">₺ {{ '%.2f'|format(ciro) }}</div>
+                {% endif %}
+
+                <a href="{{ url_for('masa.masa_dashboard', masa_id=m.id) }}" class="tc-btn">Yönet</a>
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted">Masa bulunamadı.</div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Header ve iç boşluklar */
+  .nx-inner-header { padding: 18px 20px 12px; background: var(--surface, #fff);
+    border-bottom: 1px solid var(--border, #e5e7eb); font-size: 1.1rem; font-weight: 700; }
+  .nx-inner { padding: 20px !important; }
+
+  .btn-outline-teal{
+    border:1px solid var(--brand-primary, #0EA5A3); color:var(--brand-primary, #0EA5A3);
+    border-radius:8px; font-weight:600; padding: 6px 12px;
+  }
+  .btn-outline-teal:hover{ background:var(--brand-primary, #0EA5A3); color:#fff; }
+
+  /* Üst Bölge Kartları */
+  .nx-region-top{
+    display:flex; flex-wrap:wrap; gap:10px;
+    padding: 6px 0 14px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+  }
+  .nx-pill{
+    appearance:none; border:1px solid var(--border, #e5e7eb); background:#fafafa;
+    padding:6px 10px; border-radius:12px; font-size:.9rem; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, transform .12s ease;
+  }
+  .nx-pill:hover{ background:#fff; transform: translateY(-1px); }
+  .nx-pill.is-active{
+    border-color: var(--brand-primary, #0EA5A3);
+    color: var(--brand-primary, #0EA5A3);
+    background: rgba(14,165,163,.08);
+  }
+  .nx-badge{
+    display:inline-block; min-width:20px; padding:2px 6px; line-height:1;
+    border-radius:999px; font-size:.75rem; font-weight:700;
+    background: var(--surface-2, #F3F6F8); color: var(--text, #1f2937);
+    border:1px solid var(--border, #e5e7eb);
+  }
+
+  /* Ana wrap: sidebar + grid */
+  .nx-masa-wrap{ display:grid; grid-template-columns: 1fr; gap:16px; }
+  @media (min-width: 992px){
+    .nx-masa-wrap{ grid-template-columns: 240px 1fr; }
+  }
+
+  /* Sol sidebar (bölgeler) */
+  .nx-regions{
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .nx-regions-title{
+    font-weight: 700; margin-bottom: 10px; color: var(--text, #1f2937);
+  }
+  .nx-regions-list{ display:flex; flex-wrap:wrap; gap:8px; }
+  .nx-region-btn{
+    appearance:none; border:1px solid var(--border, #e5e7eb); background:#fafafa;
+    padding:6px 10px; border-radius:999px; font-size:.9rem; cursor:pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .nx-region-btn:hover{ background:#fff; }
+  .nx-region-btn.is-active{
+    border-color: var(--brand-primary, #0EA5A3);
+    color: var(--brand-primary, #0EA5A3);
+    background: rgba(14,165,163,.08);
+  }
+
+  /* Sağ grid */
+  .nx-masa-grid-wrap{ min-width: 0; } /* grid overflow için güvenlik */
+
+  /* ✅ Durum filtreleri butonları */
+  .nx-status-filters{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    margin: 0 2px 10px 2px;
+  }
+  .nx-status-btn{
+    appearance:none; border:1px solid var(--border, #e5e7eb); background:#fafafa;
+    padding:6px 10px; border-radius:999px; font-size:.9rem; cursor:pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .nx-status-btn:hover{ background:#fff; }
+  .nx-status-btn.is-active{
+    border-color: var(--brand-primary, #0EA5A3);
+    color: var(--brand-primary, #0EA5A3);
+    background: rgba(14,165,163,.08);
+  }
+
+  .tables-grid{
+    display:grid; gap:14px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    margin-top: 4px; /* başlık ile kartlar arası nefes */
+  }
+
+  .table-card{
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px; padding: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+    display:flex; flex-direction:column; gap:10px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .table-card:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.09); }
+
+  .tc-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .tc-name{ font-weight:700; color:var(--text, #1f2937); }
+
+  .tc-badge{ font-size:.75rem; padding:4px 8px; border-radius:999px; }
+  .tc-bos{ background: rgba(14,165,163,.12); color:#065f5b; border:1px solid rgba(14,165,163,.35); }
+  .tc-dolu{ background: rgba(196,108,54,.12); color:#7a411f; border:1px solid rgba(196,108,54,.35); }
+  .tc-rezerve{ background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; }
+  .tc-ciro{
+  margin-top: 2px;
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--brand-primary, #0EA5A3);
+}
+
+  .tc-btn{
+    margin-top:6px; display:inline-block; text-align:center;
+    background: var(--brand-primary, #0EA5A3); color:#fff;
+    border-radius:10px; padding:8px 10px; font-weight:600;
+    text-decoration:none;
+  }
+  .tc-btn:hover{ background:#0a7f7e; color:#fff; }
+</style>
+
+<script>
+(function(){
+  const regionList = document.getElementById('regionList');   // SOL (mevcut)
+  const regionTop  = document.getElementById('regionTop');    // ÜST (varsa)
+  const statusFilters = document.getElementById('statusFilters'); // ✅ yeni
+  const grid = document.getElementById('tablesGrid');
+
+  if(!grid) return;
+
+  let currentRegionId = "";   // aktif bölge filtresi
+  let currentStatus = "";     // "", "dolu", "bos"
+
+  // Doğal sıralama yardımcıları
+  function extractNum(name){
+    const m = String(name || '').match(/(\d+(?:[.,]\d+)?)/); // 12, 12.5, 12,5
+    if(!m) return Number.POSITIVE_INFINITY;
+    return parseFloat(m[1].replace(',', '.'));
+  }
+  function sortCards(){
+    const cards = Array.from(grid.querySelectorAll('[data-table]'));
+    const visible = cards.filter(c => c.style.display === '' || c.style.display === 'block');
+    visible.sort((a,b)=>{
+      const aName = a.querySelector('.tc-name')?.textContent.trim() || '';
+      const bName = b.querySelector('.tc-name')?.textContent.trim() || '';
+      const an = extractNum(aName), bn = extractNum(bName);
+      if(an !== bn) return an - bn;
+      try { return aName.localeCompare(bName, 'tr', {numeric:true, sensitivity:'base'}); }
+      catch { return aName.localeCompare(bName); }
+    });
+    const hidden = cards.filter(c => c.style.display === 'none');
+    [...hidden, ...visible].forEach(c=>grid.appendChild(c));
+  }
+
+  // Kartın durumunu (dolu/bos/diğer) saptama
+  function getStatus(card){
+    const badge = card.querySelector('.tc-badge');
+    const text = (badge?.textContent || '').trim().toLowerCase();
+    const cls = badge?.className || '';
+    if (cls.includes('tc-dolu') || text.includes('dolu')) return 'dolu';
+    if (cls.includes('tc-bos')  || text.includes('boş') || text.includes('bos')) return 'bos';
+    return 'other';
+  }
+
+  // Filtreleri uygula (bölge + durum)
+  function applyFilters(){
+    const cards = grid.querySelectorAll('[data-table]');
+    cards.forEach(card=>{
+      const rid = card.getAttribute('data-region-id') || '';
+      const st  = getStatus(card);
+      const regionOK = (!currentRegionId || rid === String(currentRegionId));
+      const statusOK = (!currentStatus || st === currentStatus);
+      card.style.display = (regionOK && statusOK) ? '' : 'none';
+    });
+    sortCards();
+  }
+
+  // Geriye dönük uyumluluk: eski çağrılar
+  function applyFilter(regionId){
+    currentRegionId = regionId || '';
+    applyFilters();
+  }
+
+  // Sol liste (mevcut) click
+  if(regionList){
+    regionList.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.nx-region-btn');
+      if(!btn) return;
+      regionList.querySelectorAll('.nx-region-btn').forEach(b=>b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      const rid = btn.getAttribute('data-region-id') || '';
+      currentRegionId = rid;
+      if(regionTop){
+        regionTop.querySelectorAll('.nx-pill').forEach(p=>p.classList.toggle('is-active', p.getAttribute('data-region-id') === rid));
+      }
+      applyFilters();
+    });
+  }
+
+  // Üst bar (varsa) click
+  if(regionTop){
+    regionTop.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.nx-pill');
+      if(!btn) return;
+      regionTop.querySelectorAll('.nx-pill').forEach(b=>b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      const rid = btn.getAttribute('data-region-id') || '';
+      currentRegionId = rid;
+      if(regionList){
+        regionList.querySelectorAll('.nx-region-btn').forEach(b=>b.classList.toggle('is-active', b.getAttribute('data-region-id') === rid));
+      }
+      applyFilters();
+    });
+  }
+
+  // ✅ Durum butonları click
+  if(statusFilters){
+    statusFilters.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.nx-status-btn');
+      if(!btn) return;
+      statusFilters.querySelectorAll('.nx-status-btn').forEach(b=>b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      currentStatus = (btn.getAttribute('data-status') || '').toLowerCase(); // "", "dolu", "bos"
+      applyFilters();
+    });
+  }
+
+  // İlk açılışta tüm kartları doğal sıraya sok
+  sortCards();
+
+  // Sayfa açılışında server active_region_id varsa uygula (üst ve sol birlikte)
+  {% if active_region_id %}
+    const ridInit = "{{ active_region_id }}";
+    currentRegionId = ridInit;
+    if(regionTop){
+      const initTop = regionTop.querySelector(`.nx-pill[data-region-id="${ridInit}"]`);
+      if(initTop) initTop.click();
+    } else if(regionList){
+      const initSide = regionList.querySelector(`.nx-region-btn[data-region-id="${ridInit}"]`);
+      if(initSide) initSide.click();
+    } else {
+      applyFilters();
+    }
+  {% endif %}
+})();
+</script>

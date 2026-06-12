@@ -1,0 +1,301 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Gün Sonu{% endblock %}
+
+{% block styles %}
+<style>
+  /* Basit Nexa grid ve kart boşlukları */
+  .nx-grid{display:grid;gap:16px;grid-template-columns:1fr}
+  @media (min-width: 992px){
+    .nx-grid.nx-2{grid-template-columns:1fr 1fr}
+    .nx-grid.nx-3{grid-template-columns:repeat(3,1fr)}
+    .nx-grid.nx-4{grid-template-columns:repeat(4,1fr)}
+  }
+
+  .nx-card{
+    background:var(--surface,#fff);
+    border:1px solid var(--border,#e5e7eb);
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.06);
+    overflow:hidden;
+    margin:12px;
+  }
+  .nx-hdr{
+    padding:14px 16px;
+    background:var(--surface-2,#fafafa);
+    border-bottom:1px solid var(--border,#e5e7eb);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-weight:700;
+  }
+  .nx-body{padding:16px}
+  .nx-kpi{display:flex;flex-direction:column;gap:4px}
+  .nx-kpi .muted{color:#6b7280;font-size:.9rem}
+  .nx-kpi .val{font-size:1.4rem;font-weight:800}
+
+  .nx-badge{display:inline-block;font-size:.78rem;padding:.25rem .6rem;border-radius:999px;border:1px solid var(--border,#e5e7eb);background:#f8fafc;color:#111827}
+  .nx-badge.warn{background:#fde68a;color:#7c4a00;border-color:#facc15}
+  .nx-badge.secondary{background:#eef2f7;color:#475569;border-color:#e2e8f0}
+
+  .nx-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .nx-input{height:36px;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:0 12px;background:var(--surface,#fff);outline:none}
+  .nx-input:focus{border-color:var(--brand-primary,#0EA5A3);box-shadow:0 0 0 3px rgba(14,165,163,.18)}
+  .nx-label{display:block;font-size:.85rem;color:#6b7280;margin-bottom:4px}
+  .nx-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  .nx-btn{height:36px;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;border:1px solid transparent;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  .nx-btn.primary{background:var(--brand-primary,#0EA5A3);color:#fff}
+  .nx-btn.primary:hover{filter:brightness(.95)}
+  .nx-btn.outline{background:transparent;border:1px solid var(--border,#e5e7eb);color:var(--text,#111827)}
+  .nx-btn.outline:hover{background:#f3f4f6}
+  .nx-btn.warn{background:#f59e0b;color:#111}
+  .nx-btn.warn:hover{filter:brightness(.95)}
+
+  table.nx-table{width:100%;border-collapse:collapse}
+  table.nx-table thead th{background:var(--surface-2,#fafafa);border-bottom:1px solid var(--border,#e5e7eb);padding:10px;font-weight:700;text-align:left}
+  table.nx-table tbody td{border-bottom:1px dashed var(--border,#e5e7eb);padding:10px}
+  .text-end{text-align:right}
+  .muted{color:#6b7280}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 12px 8px 12px;">
+  <h2 style="margin:0;font-weight:800;">📊 Gün Sonu</h2>
+  {% if instant %}
+    <span class="nx-badge warn">Anlık (05:00 → Şimdi)</span>
+  {% else %}
+    <span class="nx-badge secondary">Cutoff: {{ "%02d"|format(cutoff or 12) }}:00</span>
+  {% endif %}
+</div>
+
+<div class="nx-card">
+  <div class="nx-body">
+    <form class="nx-form" method="get" action="{{ url_for('gun_sonu.gun_sonu') }}">
+      <div>
+        <label class="nx-label">Tarih</label>
+        <input type="date" class="nx-input" name="d" value="{{ d }}">
+      </div>
+
+      {% if not instant %}
+      <div>
+        <label class="nx-label">Cutoff (saat)</label>
+        <input type="number" min="0" max="23" class="nx-input" style="width:120px" name="cutoff" value="{{ cutoff if cutoff is not none else 12 }}">
+      </div>
+      {% endif %}
+
+      <div class="nx-actions" style="margin-left:auto">
+        <button class="nx-btn primary" type="submit">Göster</button>
+
+        <a class="nx-btn outline"
+           href="{{ url_for('gun_sonu.gun_sonu_export_csv',
+                            d=(d if not instant else None),
+                            cutoff=(cutoff if (not instant and cutoff is not none) else None),
+                            instant=(1 if instant else None)) }}">
+          CSV İndir
+        </a>
+
+        {% if instant %}
+          <a class="nx-btn outline" href="{{ url_for('gun_sonu.gun_sonu', d=d, cutoff=(cutoff or 12)) }}">Cutoff moduna dön</a>
+        {% else %}
+          <a class="nx-btn warn" href="{{ url_for('gun_sonu.gun_sonu', instant=1) }}">Anlık Gün Sonu (05→Şimdi)</a>
+        {% endif %}
+      </div>
+
+      <div style="flex:1 1 100%;display:flex;justify-content:flex-end">
+        <small class="muted">Pencere: {{ start.strftime('%d.%m.%Y %H:%M') }} – {{ end.strftime('%d.%m.%Y %H:%M') }} (TR)</small>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- KPI'lar: Tahsilat / Açık (anlık) / Toplam Ciro / İşlem + İndirim / Masa / Ortalama Fiş -->
+<div class="nx-grid nx-4">
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">Tahsilat</div>
+        <div class="val">{{ '%.2f'|format(total_revenue or 0) }} ₺</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">Açık (Anlık)</div>
+        <div class="val">{{ '%.2f'|format(open_total or 0) }} ₺</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">Toplam Ciro</div>
+        <div class="val">{{ '%.2f'|format(ciro_total or 0) }} ₺</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">İşlem Adedi</div>
+        <div class="val">{{ tx_count or 0 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔻 İndirim -->
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">İndirim</div>
+        <div class="val">{{ '%.2f'|format(discount_total or 0) }} ₺</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧍‍♀️ Masa -->
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">Masa</div>
+        <div class="val">{{ table_count or 0 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧾 Ortalama Fiş -->
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="nx-kpi">
+        <div class="muted">Ortalama Fiş</div>
+        <div class="val">{{ '%.2f'|format(avg_receipt or 0) }} ₺</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ödeme Yöntemleri -->
+<div class="nx-grid">
+  <div class="nx-card">
+    <div class="nx-body">
+      <div class="muted" style="margin-bottom:6px;">Ödeme Yöntemleri</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        {% for p in payments %}
+          <span class="nx-badge">
+            {{ p.payment_method or '—' }}:
+            {{ '%.2f'|format(p.tutar or 0) }} ₺ ({{ p.adet or 0 }})
+          </span>
+        {% else %}
+          <span class="muted">Kayıt yok</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nx-grid nx-2">
+  <!-- Ürün Kırılımı -->
+  <div class="nx-card">
+    <div class="nx-hdr">🧾 Ürün Kırılımı (ödenen kalemler)</div>
+    <div class="nx-body" style="padding:0;">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            <th class="text-end">Adet</th>
+            <th class="text-end">Tutar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in product_breakdown %}
+            <tr>
+              <td>{{ r.name }}</td>
+              <td class="text-end">{{ r.qty or 0 }}</td>
+              <td class="text-end">{{ '%.2f'|format(r.total or 0) }} ₺</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="muted" style="padding:12px">Kayıt yok</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Garson Kırılımı + Bölge Kırılımı -->
+  <div class="nx-card">
+    <div class="nx-hdr">👤 Garson Kırılımı (ödemeye göre)</div>
+    <div class="nx-body" style="padding:0;">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th>Garson</th>
+            <th class="text-end">Tutar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in waiter_breakdown %}
+            <tr>
+              <td>{{ w.name or ('#' ~ w.uid) }}</td>
+              <td class="text-end">{{ '%.2f'|format(w.total or 0) }} ₺</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="2" class="muted" style="padding:12px">Kayıt yok</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nx-hdr" style="border-top:1px solid var(--border,#e5e7eb);">🏷️ Bölge (Region) Kırılımı</div>
+    <div class="nx-body" style="padding:0;">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th>Bölge</th>
+            <th class="text-end">Ciro</th>
+            <th class="text-end">İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if region_sales %}
+            {% for r in region_sales %}
+              <tr>
+                <td>{{ r.region_name or '—' }}</td>
+                <td class="text-end">{{ '%.2f'|format(r.ciro or 0) }} ₺</td>
+                <td class="text-end">{{ r.tx or 0 }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="3" class="muted" style="padding:12px">Kayıt yok</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="nx-card">
+  <div class="nx-hdr">🚫 İptal Edilen Kalemler (pencere içindeki siparişlerden)</div>
+  <div class="nx-body" style="padding:0;">
+    <table class="nx-table">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th class="text-end">Adet</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cancelled_items %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td class="text-end">{{ c.count or 0 }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="2" class="muted" style="padding:12px">Kayıt yok</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

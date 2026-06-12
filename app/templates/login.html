@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nexa · Giriş</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Inter -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}" />
+
+  <!-- Nexa theme -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+
+  <style>
+    .auth-shell{
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: clamp(6vh, 10vh, 14vh);
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .auth-card{
+      width: 100%;
+      max-width: 440px;
+      background: var(--surface, #11161c);
+      border: 1px solid var(--border, #1f2833);
+      border-radius: 16px;
+      box-shadow: var(--shadow, 0 20px 50px rgba(0,0,0,.35));
+      overflow: hidden;
+    }
+    .auth-head{
+      padding: 22px 22px 8px 22px;
+      text-align: center;
+    }
+    .brand{
+      display:inline-flex; align-items:center; gap:.6rem;
+      font-weight: 800; font-size: 1.25rem;
+      color: var(--text, #e5e7eb);
+    }
+    .brand .dot{
+      width:12px; height:12px; border-radius:50%;
+      background: var(--brand-accent, #C46C36);
+      box-shadow: 0 0 0 3px rgba(196,108,54,.18);
+    }
+    .auth-sub{ margin-top: 6px; color: #9aa4b2; font-size: .95rem; }
+
+    .auth-body{ padding: 16px 22px 22px 22px; }
+    .form-label{ color:#aeb6c2; font-weight:600; margin-right:8px; }
+
+    .form-control{
+      background:#e9eef5; color:#0f141a; border:1px solid #212b36;
+      border-radius: 12px; padding:.6rem .9rem; margin: 6px;
+
+    }
+    .form-control:focus{
+      border-color: rgba(14,165,163,.55);
+      box-shadow: 0 0 0 0.2rem rgba(14,165,163,.16);
+      background:#e9eef5; color:#0f141a;
+
+    }
+
+    /* Şifre satırı */
+    .password-row{
+      display:flex; align-items:center; gap:8px;
+    }
+    .password-row .form-control{
+      flex:1;
+    }
+    .btn-eye{
+      border:none; background:transparent;
+      width:36px; height:36px;
+      display:flex; align-items:center; justify-content:center;
+      border-radius:8px; cursor:pointer;
+      transition: background .15s ease;
+    }
+    .btn-eye svg{
+      width:18px; height:18px;
+      stroke: var(--text, #d1d5db);
+    }
+    .btn-eye:hover{ background: rgba(14,165,163,.1); }
+    .btn-eye.active svg{ stroke: var(--brand-primary, #0EA5A3); }
+
+    .btn-brand{
+      width: 100%;
+      background: linear-gradient(135deg, var(--brand-primary, #0EA5A3), #0b8e8c);
+      color:#fff; border:0; border-radius: 12px;
+      font-weight: 700; padding: .9rem 1rem;
+    }
+    .btn-brand:hover{ filter: brightness(1.05); color:#fff; }
+
+    .auth-foot{
+      padding: 0 22px 18px 22px;
+      font-size: .85rem; color:#9aa4b2; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="auth-shell">
+    <section class="auth-card">
+      <div class="auth-head">
+        <div class="brand"><span class="dot"></span><span class="name">Nexa</span></div>
+        <div class="auth-sub">Yönetim Paneli · Giriş</div>
+      </div>
+
+      <div class="auth-body">
+        <form method="POST" action="{{ url_for('auth.login') }}">
+          <div class="mb-3">
+            <label for="username" class="form-label">Kullanıcı Adı</label>
+            <input type="text" class="form-control" id="username" name="username" required autofocus />
+          </div>
+
+          <div class="mb-3">
+            <div class="password-row">
+              <label for="password" class="form-label">Şifre</label>
+              <input type="password" class="form-control" id="password" name="password" required />
+              <button class="btn-eye" type="button" id="togglePass" aria-label="Şifreyi göster/gizle">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-brand">Giriş Yap</button>
+        </form>
+      </div>
+
+      <div class="auth-foot">
+        © {{ (current_year if current_year is defined else now().year if now is defined else "") }} Nexa
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const btn = document.getElementById('togglePass');
+    const inp = document.getElementById('password');
+    btn.addEventListener('click', ()=>{
+      const active = inp.type === 'password';
+      inp.type = active ? 'text' : 'password';
+      btn.classList.toggle('active', active);
+    });
+  </script>
+</body>
+</html>

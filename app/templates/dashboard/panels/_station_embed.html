@@ -1,0 +1,1411 @@
+{# station_embedded.html — Nexa brand uyumlu, bar/mutfak/nargile ortak şablon + Socket.IO #}
+
+
+
+{% set role_lower = (role or '').lower() %}
+
+
+
+{% if role_lower in ['bar','kitchen','mutfak','nargile','admin'] %}
+
+
+
+<div class="nx-station">
+
+
+
+  <style>
+    :root {
+
+
+
+      --brand-primary: #0EA5A3;
+
+      --brand-primary-600: #0C8E8C;
+
+      --accent: #C46C36;
+
+
+
+      --bg: #F7FAFC;
+
+      --surface: #FFFFFF;
+
+      --surface-2: #F3F6F8;
+
+      --text: #0F172A;
+
+      --muted: #64748B;
+
+      --border: #E5E7EB;
+
+
+
+      --radius: 12px;
+
+      --shadow: 0 8px 24px rgba(2, 6, 23, .06);
+
+
+
+    }
+
+
+
+    [data-theme="dark"] {
+
+
+
+      --bg: #0B1215;
+
+      --surface: #0F1A1C;
+
+      --surface-2: #121E21;
+
+      --text: #E5F2F2;
+
+      --muted: #8FA9A8;
+
+      --border: #1F2A2E;
+
+
+
+      --shadow: 0 12px 28px rgba(0, 0, 0, .32);
+
+
+
+    }
+
+
+
+    .nx-card {
+
+      background: var(--surface);
+
+      border: 1px solid var(--border);
+
+      border-radius: var(--radius);
+
+      box-shadow: var(--shadow);
+
+      overflow: hidden
+    }
+
+
+
+    .nx-card-h {
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      padding: 12px 14px;
+
+      background: var(--surface-2);
+
+      border-bottom: 1px solid var(--border);
+
+      font-weight: 800
+    }
+
+
+
+    .nx-pill {
+
+      display: inline-flex;
+
+      gap: 6px;
+
+      align-items: center;
+
+      border: 1px solid var(--border);
+
+      border-radius: 999px;
+
+      padding: 6px 10px;
+
+      background: var(--surface);
+
+      color: var(--muted);
+
+      font-weight: 700
+    }
+
+
+
+    .nx-table-wrap {
+
+      overflow: auto
+    }
+
+
+
+    table.nx-table {
+
+      width: 100%;
+
+      border-collapse: collapse
+    }
+
+
+
+    .nx-table thead th {
+
+      position: sticky;
+
+      top: 0;
+
+      background: var(--surface-2);
+
+      border-bottom: 1px solid var(--border);
+
+      padding: 10px;
+
+      font-weight: 700;
+
+      white-space: nowrap
+    }
+
+
+
+    .nx-table tbody td {
+
+      border-bottom: 1px dashed var(--border);
+
+      padding: 10px;
+
+      vertical-align: middle
+    }
+
+
+
+    .nx-right {
+
+      text-align: right
+    }
+
+
+
+    .nx-badge {
+
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: 6px;
+
+      padding: 6px 10px;
+
+      border-radius: 999px;
+
+      font-weight: 700;
+
+      border: 1px solid transparent
+    }
+
+
+
+    .nx-badge.pending {
+
+      background: #fff7ed;
+
+      color: #9a3412;
+
+      border-color: #fed7aa
+    }
+
+
+
+    .nx-badge.ready {
+
+      background: #ecfdf5;
+
+      color: #065f46;
+
+      border-color: #a7f3d0
+    }
+
+
+
+    .nx-badge.muted {
+
+      background: var(--surface-2);
+
+      color: var(--muted);
+
+      border-color: var(--border)
+    }
+
+
+
+    .nx-btn {
+
+      height: 34px;
+
+      border-radius: 10px;
+
+      padding: 0 12px;
+
+      font-weight: 700;
+
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: 8px;
+
+      border: 1px solid var(--border);
+
+      background: var(--surface);
+
+      color: var(--text);
+
+      cursor: pointer
+    }
+
+
+
+    .nx-btn.primary {
+
+      background: var(--brand-primary);
+
+      border-color: transparent;
+
+      color: #fff
+    }
+
+
+
+    .nx-btn.primary:hover {
+
+      background: var(--brand-primary-600)
+    }
+
+
+
+    .nx-empty {
+
+      color: var(--muted);
+
+      padding: 28px;
+
+      text-align: center
+    }
+
+
+
+    @media(max-width: 720px) {
+
+
+
+      .nx-table thead {
+
+        display: none
+      }
+
+
+
+      .nx-table tbody tr {
+
+        display: grid;
+
+        grid-template-columns: 1fr 1fr;
+
+        gap: 6px;
+
+        border-bottom: 1px dashed var(--border);
+
+        padding: 10px
+      }
+
+
+
+      .nx-table tbody td {
+
+        padding: 6px 0
+      }
+
+
+
+      .nx-table tbody td[data-label] {
+
+        display: flex;
+
+        gap: 8px
+      }
+
+
+
+      .nx-table tbody td[data-label]::before {
+
+        content: attr(data-label);
+
+        color: var(--muted);
+
+        font-weight: 600;
+
+        min-width: 86px
+      }
+
+
+
+    }
+  </style>
+
+
+
+
+
+
+
+  <div class="nx-card">
+
+
+
+    <div class="nx-card-h">
+
+
+
+      <div>
+
+
+
+        {% if role_lower == 'bar' %}🍹 Bar{% elif role_lower == 'nargile' %}💨 Nargile{% else %}🍳 Mutfak{% endif %}
+
+
+
+        — Panel
+
+
+
+      </div>
+
+
+
+      <div class="nx-pill">
+
+
+
+        {% if role_lower == 'bar' %}Ürün grubu: Bar
+
+
+
+        {% elif role_lower == 'nargile' %}Ürün grubu: Nargile
+
+
+
+        {% else %}Ürün grubu: Mutfak{% endif %}
+
+
+
+      </div>
+
+
+
+    </div>
+
+
+
+    {% if role_lower == 'nargile' %}
+
+    <div
+      style="padding: 14px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+
+      <div>
+
+        <label
+          style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--muted); margin-bottom: 4px;">Başlangıç
+
+          Tarihi</label>
+
+        <input type="date" id="nargile-start-date"
+          style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem; color: var(--text); background: var(--surface-2);">
+
+      </div>
+
+      <div>
+
+        <label
+          style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--muted); margin-bottom: 4px;">Bitiş
+
+          Tarihi</label>
+
+        <input type="date" id="nargile-end-date"
+          style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem; color: var(--text); background: var(--surface-2);">
+
+      </div>
+
+      <button onclick="fetchNargileSales()" class="nx-btn primary" style="height: 38px;">Getir</button>
+
+      <button onclick="fetchNargileSales(true)" class="nx-btn" style="height: 38px;">Bugün</button>
+
+
+
+      <div <div
+        style="margin-left: auto; display: flex; gap: 16px; align-items: center; background: var(--surface-2); padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);">
+
+        <div style="text-align: right;">
+
+          <div style="font-size: 0.8rem; color: var(--muted); font-weight: 700;">Buzlu Marpuç</div>
+
+          <div id="nargile-marpuc-count" style="font-size: 1.2rem; font-weight: 800; color: var(--brand-primary);">0
+
+          </div>
+
+        </div>
+
+        <div style="width: 1px; height: 30px; background: var(--border);"></div>
+
+        <div style="text-align: right;">
+
+          <div style="font-size: 0.8rem; color: var(--muted); font-weight: 700;">Kafa Değişimi</div>
+
+          <div id="nargile-kafa-count" style="font-size: 1.2rem; font-weight: 800; color: var(--brand-primary);">0</div>
+
+        </div>
+
+        <div style="width: 1px; height: 30px; background: var(--border);"></div>
+
+        <div style="text-align: right;">
+
+          <div style="font-size: 0.8rem; color: var(--muted); font-weight: 700;">Nargile</div>
+
+          <div id="nargile-count" style="font-size: 1.2rem; font-weight: 800; color: var(--brand-primary);">0</div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <script>
+
+      async function fetchNargileSales(isToday = false) {
+
+        let url = '/dashboard/api/nargile-sales';
+
+        if (!isToday) {
+
+          const sd = document.getElementById('nargile-start-date').value;
+
+          const ed = document.getElementById('nargile-end-date').value;
+
+          if (sd || ed) {
+
+            const params = new URLSearchParams();
+
+            if (sd) params.append('start_date', sd);
+
+            if (ed) params.append('end_date', ed);
+
+            url += '?' + params.toString();
+
+          }
+
+        } else {
+
+          document.getElementById('nargile-start-date').value = '';
+
+          document.getElementById('nargile-end-date').value = '';
+
+        }
+
+
+
+        try {
+
+          const res = await fetch(url);
+
+          if (res.ok) {
+
+            const data = await res.json();
+
+            document.getElementById('nargile-marpuc-count').innerText = data.buzlu_marpuc_qty || 0;
+
+            document.getElementById('nargile-kafa-count').innerText = data.kafa_degisim_qty || 0;
+
+            document.getElementById('nargile-count').innerText = data.nargile_qty || 0;
+
+          }
+
+        } catch (e) {
+
+          console.error("Nargile sales fetch error:", e);
+
+        }
+
+      }
+
+      // Her sayfa yüklendiğinde bugünü ilk kez göster
+
+      document.addEventListener('DOMContentLoaded', () => fetchNargileSales(true));
+
+    </script>
+
+    {% endif %}
+
+
+
+
+
+
+
+    <div class="nx-table-wrap">
+
+
+
+      {% if station_items %}
+
+
+
+      <table class="nx-table">
+
+
+
+        <thead>
+
+
+
+          <tr>
+
+
+
+            <th>Masa</th>
+
+
+
+            <th>Ürün</th>
+
+
+
+            <th>Not</th>
+
+
+
+            <th>Garson</th>
+
+
+
+            <th>Saat</th>
+
+
+
+            <th>Durum</th>
+
+
+
+            <th style="width:140px">İşlem</th>
+
+
+
+          </tr>
+
+
+
+        </thead>
+
+
+
+        <tbody id="stationBody">
+
+
+
+          {% set update_ep = 'dashboard.station_durum_guncelle' %}
+
+
+
+          {% for it in station_items %}
+
+
+
+          {# --- Doğru alanlar --- #}
+
+
+
+          {% set masa_adi = it.table_name or (it.table.name if it.table and it.table.name else '—') %}
+
+
+
+          {% set garson = it.waiter_name or '-' %}
+
+
+
+          {% set saat_dt = it.created_at %}
+
+
+
+          {% set status = (it.status or '').lower() %}
+
+
+
+
+
+
+
+          <tr data-item-id="{{ it.id }}">
+
+
+
+            <td data-label="Masa">{{ masa_adi }}</td>
+
+
+
+
+
+
+
+            {# Ürün: "adet × ad" #}
+
+
+
+            <td class="fw-semibold" data-label="Ürün">
+
+
+
+              {{ it.quantity or 1 }} × {{ it.product.name }}
+
+
+
+            </td>
+
+
+
+
+
+
+
+            <td class="text-muted" data-label="Not">{{ it.note or '' }}</td>
+
+
+
+            <td data-label="Garson">{{ garson }}</td>
+
+
+
+
+
+
+
+            <td data-label="Saat">
+
+
+
+              {% if saat_dt %}
+
+
+
+              {# timezone'lı ise TR'ye çevir, değilse direkt yaz #}
+
+
+
+              {{ saat_dt.astimezone(TR).strftime("%H:%M") if saat_dt.tzinfo else saat_dt.strftime("%H:%M") }}
+
+
+
+              {% else %}
+
+
+
+              -
+
+
+
+              {% endif %}
+
+
+
+            </td>
+
+
+
+
+
+
+
+            <td data-label="Durum">
+
+
+
+              {% if status == 'hazırlanıyor' %}
+
+
+
+              <span class="nx-badge pending">hazırlanıyor</span>
+
+
+
+              {% elif status == 'hazır' %}
+
+
+
+              <span class="nx-badge ready">hazır</span>
+
+
+
+              {% else %}
+
+
+
+              <span class="nx-badge muted">{{ it.status }}</span>
+
+
+
+              {% endif %}
+
+
+
+            </td>
+
+
+
+
+
+
+
+            <td data-label="İşlem">
+
+
+
+              {% if status == 'hazırlanıyor' %}
+
+
+
+              <form class="inline-update" method="POST" action="{{ url_for(update_ep, item_id=it.id) }}">
+
+
+
+                <button class="nx-btn primary" type="submit">✔ Hazır</button>
+
+
+
+              </form>
+
+
+
+              {% else %}
+
+
+
+              <span class="nx-badge ready">✓ Tamam</span>
+
+
+
+              {% endif %}
+
+
+
+            </td>
+
+
+
+          </tr>
+
+
+
+          {% endfor %}
+
+
+
+        </tbody>
+
+
+
+
+
+
+
+      </table>
+
+
+
+      {% else %}
+
+
+
+      <div class="nx-empty">Bekleyen kalem yok.</div>
+
+
+
+      {% endif %}
+
+
+
+    </div>
+
+
+
+  </div>
+
+
+
+
+
+
+
+  <!-- 🔊 Ses -->
+
+
+
+  <audio id="notificationSound" src="{{ url_for('static', filename='sounds/bip.mp3') }}" preload="auto"></audio>
+
+
+
+
+
+
+
+  <!-- 📡 Socket.IO + QZ -->
+
+
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+
+
+  <script src="{{ url_for('static', filename='js/qz-tray.js') }}"></script>
+
+
+
+  <script src="{{ url_for('static', filename='js/qz-app.js') }}?v=20250927a"></script>
+
+
+
+
+
+
+
+  <!-- Ses izni overlay (ilk defa) -->
+
+
+
+  <div id="nx-audio-unlock"
+    style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:9999;">
+
+
+
+    <button id="nx-audio-btn"
+      style="padding:12px 16px;border-radius:10px;border:none;background:#0EA5A3;color:#fff;font-weight:800;box-shadow:0 8px 24px rgba(2,6,23,.25);cursor:pointer;">
+
+
+
+      🔊 Sesleri Aç
+
+
+
+    </button>
+
+
+
+  </div>
+
+
+
+
+
+
+
+  <script>
+
+
+
+    (function () {
+
+
+
+      const sound = document.getElementById('notificationSound');
+
+
+
+
+
+
+
+      // --- Audio unlock (iOS/Chrome autoplay kısıtı) ---
+
+
+
+      const UNLOCK_KEY = 'nx_audio_unlocked';
+
+
+
+      let audioCtx = null;
+
+
+
+
+
+
+
+      function showUnlock() {
+
+
+
+        const layer = document.getElementById('nx-audio-unlock');
+
+
+
+        if (layer) layer.style.display = 'flex';
+
+
+
+      }
+
+
+
+      function hideUnlock() {
+
+
+
+        const layer = document.getElementById('nx-audio-unlock');
+
+
+
+        if (layer) layer.style.display = 'none';
+
+
+
+      }
+
+
+
+      async function unlockAudio() {
+
+
+
+        try {
+
+
+
+          // 1) <audio> play ile dene
+
+
+
+          if (sound) {
+
+
+
+            sound.muted = false;
+
+
+
+            sound.currentTime = 0;
+
+
+
+            await sound.play().catch(() => { });
+
+
+
+          }
+
+
+
+          // 2) WebAudio ile minik bip (bazı cihazlar bunu “gesture” sayar)
+
+
+
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+
+
+          if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+
+
+          const o = audioCtx.createOscillator();
+
+
+
+          const g = audioCtx.createGain();
+
+
+
+          o.connect(g); g.connect(audioCtx.destination);
+
+
+
+          g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+
+
+
+          g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+
+
+
+          o.frequency.value = 880; // kısa tiz bip
+
+
+
+          o.start();
+
+
+
+          o.stop(audioCtx.currentTime + 0.06);
+
+
+
+          sessionStorage.setItem(UNLOCK_KEY, '1');
+
+
+
+          hideUnlock();
+
+
+
+        } catch (e) {
+
+
+
+          // Başarısızsa tekrar iste
+
+
+
+          showUnlock();
+
+
+
+        }
+
+
+
+      }
+
+
+
+
+
+
+
+      document.getElementById('nx-audio-btn')?.addEventListener('click', unlockAudio);
+
+
+
+      // Kullanıcı herhangi bir etkileşim yaptığında da deneyelim
+
+
+
+      ['click', 'touchstart', 'keydown'].forEach(ev => window.addEventListener(ev, () => {
+
+
+
+        if (sessionStorage.getItem(UNLOCK_KEY) !== '1') unlockAudio();
+
+
+
+      }, { once: false, passive: true }));
+
+
+
+
+
+
+
+      // --- Ses çalma + refresh akışı ---
+
+
+
+      async function playBeepThen(cb) {
+        try {
+          if (sound) {
+            sound.muted = false;
+            sound.currentTime = 0;
+            // Await the play promise to make sure it actually starts playing
+            await sound.play();
+            // If it succeeded, we know user allowed it
+            sessionStorage.setItem(UNLOCK_KEY, '1');
+            hideUnlock();
+          }
+        } catch (e) {
+          console.warn("Auto-play engellendi:", e);
+          if (sessionStorage.getItem(UNLOCK_KEY) !== '1') {
+            showUnlock();
+          }
+
+          // WebAudio fallback
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') {
+            await audioCtx.resume().catch(() => { });
+          }
+          try {
+            if (audioCtx.state !== 'suspended') {
+              const o = audioCtx.createOscillator();
+              const g = audioCtx.createGain();
+              o.connect(g); g.connect(audioCtx.destination);
+              g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+              g.gain.exponentialRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+              o.frequency.value = 880;
+              o.start();
+              o.stop(audioCtx.currentTime + 0.2); // bip
+            }
+          } catch (we) { console.error("Web audio fallback failed", we); }
+        } finally {
+          // ALWAYS execute cb() to refresh the table, but only AFTER we tried playing sound
+          if (cb) cb();
+        }
+      }
+
+
+
+
+
+
+
+      async function softRefresh() {
+
+
+
+        try {
+
+
+
+          const currentTbody = document.getElementById('stationBody');
+
+
+
+          if (!currentTbody) { location.reload(); return; }
+
+
+
+          const url = new URL(window.location.href);
+
+
+
+          url.searchParams.set('partial', '1');
+
+
+
+          url.searchParams.set('_', Date.now());
+
+
+
+          const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'fetch', 'Cache-Control': 'no-cache' } });
+
+
+
+          if (!res.ok) throw new Error('partial fetch failed');
+
+
+
+          const html = await res.text();
+
+
+
+          const temp = document.createElement('template');
+
+
+
+          temp.innerHTML = html.trim();
+
+
+
+          const newBody = temp.content.querySelector('tbody');
+
+
+
+          if (!newBody) throw new Error('tbody missing');
+
+
+
+          currentTbody.replaceWith(newBody);
+
+
+
+          newBody.id = 'stationBody';
+
+
+
+        } catch (err) {
+
+
+
+          console.warn('[station] soft refresh fail -> full reload', err);
+
+
+
+          location.reload();
+
+
+
+        }
+
+
+
+      }
+
+
+
+
+
+
+
+      // --- Sayfa yüklenince otomatik bip ---
+
+
+
+      window.addEventListener('pageshow', () => {
+
+
+
+        // Eğer ses kilidi yoksa overlay göster; varsa direkt bip
+
+
+
+        if (sessionStorage.getItem(UNLOCK_KEY) === '1') {
+
+
+
+          playBeepThen(null);
+
+
+
+        } else {
+
+
+
+          showUnlock();
+
+
+
+        }
+
+
+
+      });
+
+
+
+
+
+
+
+      // --- Socket.IO bağlan ---
+
+
+
+      let socket = null;
+
+
+
+      try {
+
+
+
+        socket = io();
+
+
+
+        socket.on('connect', () => console.log('[station] connected'));
+
+
+
+        socket.on('disconnect', () => console.log('[station] disconnected'));
+      } catch (e) { console.warn('[station] socket init failed', e); }
+
+      if (socket) {
+        console.log('[station] Socket is defined, binding events...');
+        socket.on('yeni_siparis', data => {
+          console.warn('[station] yeni_siparis event RECEIVED!', data);
+          try {
+            playBeepThen(() => {
+              console.warn('[station] Executing softRefresh from yeni_siparis callback');
+              softRefresh();
+            });
+          } catch (err) {
+            console.error('[station] Error executing playBeepThen:', err);
+            softRefresh();
+          }
+        });
+        socket.on('order:updated', p => {
+          console.warn('[station] order:updated event RECEIVED!', p);
+          try {
+            playBeepThen(() => {
+              console.warn('[station] Executing softRefresh from order:updated callback');
+              softRefresh();
+            });
+          } catch (err) {
+            console.error('[station] Error executing playBeepThen:', err);
+            softRefresh();
+          }
+        });
+        socket.on('items_cancelled', p => {
+          console.warn('[station] items_cancelled event RECEIVED!', p);
+          softRefresh();
+        });
+      } else {
+        console.error('[station] Socket is NULL. Events will NOT be bound.');
+      }
+
+      document.addEventListener('submit', async (e) => {
+
+
+
+        const f = e.target.closest('form.inline-update'); if (!f) return;
+
+
+
+        e.preventDefault();
+
+
+
+        const btn = f.querySelector('button'); if (btn) btn.disabled = true;
+
+
+
+        try {
+
+
+
+          const res = await fetch(f.action, { method: 'POST' });
+
+
+
+          if (!res.ok) throw new Error('update failed');
+
+
+
+          await softRefresh();
+
+
+
+        } catch (err) { console.warn(err); location.reload(); }
+
+
+
+      });
+
+
+
+    })();
+
+
+
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+
+
+{% else %}
+
+
+
+<div class="nx-empty">Bu panel sadece Bar, Mutfak veya Nargile kullanıcıları içindir.</div>
+
+
+
+{% endif %}
